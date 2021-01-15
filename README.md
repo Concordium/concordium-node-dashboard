@@ -6,7 +6,7 @@ A dashboard shipped with the concordium-node for inspecting the current state of
 
 ## Installation
 
-Install NodeJS and NPM
+Install [NodeJS](https://nodejs.org/en/) and NPM
 
 
 To install dependencies run the following in the project root:

@@ -1,0 +1,27 @@
+
+default:
+  image: node:lts
+
+cache:
+  paths:
+    - node_modules/
+
+typecheck:
+  script:
+    - npm install
+    - npm run typecheck
+lint:
+  script:
+    - npm install
+    - npm run lint
+
+formatcheck:
+  script:
+    - npm install
+    - npm run formatcheck
+
+build:
+  script:
+  - npm install
+  - npm run build
+
