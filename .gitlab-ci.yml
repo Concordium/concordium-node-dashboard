@@ -1,26 +1,33 @@
 
 default:
-  image: node:lts
+  image: node:15.5.1
 
 cache:
   paths:
     - node_modules/
 
+stages:
+  - lint
+
 typecheck:
+  stage: lint
   script:
     - npm install
     - npm run typecheck
 lint:
+  stage: lint
   script:
     - npm install
     - npm run lint
 
 formatcheck:
+  stage: lint
   script:
     - npm install
     - npm run formatcheck
 
 build:
+  stage: lint
   script:
   - npm install
   - npm run build
