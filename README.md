@@ -6,16 +6,44 @@ A dashboard shipped with the concordium-node for inspecting the current state of
 
 ## Installation
 
-Install [NodeJS](https://nodejs.org/en/) and NPM
+Install [NodeJS](https://nodejs.org/en/) and NPM.
 
 
-To install dependencies run the following in the project root:
+Install dependencies using the following from the project root:
 
 ```
 npm install
 ```
 
+Install the protoc tool for generating protobuf files:
+
+- MacOS: brew install protobuf
+- Ubuntu 19.10: sudo apt install protobuf-compiler
+
+Install the code generator plugin for GRPC-web to PATH, see [instructions on GRPC-web](https://github.com/grpc/grpc-web#code-generator-plugin).
+
+### Build the GRPC TypeScript client
+
+Fetch the GRPC proto files for the Concordium-node:
+
+```
+git submodules update --init
+```
+
+Build the GRPC-client for TypeScript:
+
+```
+./build_grpc-web-client.sh
+```
+If this succeeds: a directory `grpc-api-client` should be in your project root.
+
 ## Development
+
+Since a browser cannot use the GRPC protocol directly, a proxy must be in front, start an envoy proxy which assumes the Node GRPC api is running on `localhost:10000`:
+
+```
+docker-compose up
+```
 
 To watch files and automate the build run:
 
@@ -23,7 +51,7 @@ To watch files and automate the build run:
 npm run dev
 ```
 
-Before commiting:
+### Before commiting:
 
 - Everything should typecheck `npm run typecheck`
 - No warnings from the linter `npm run linter`
