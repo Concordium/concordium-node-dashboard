@@ -31,3 +31,51 @@ export async function fetchNodeInfo() {
     localTime: new Date(resNodeInfo.getCurrentLocaltime() * 1000),
   };
 }
+
+export type FetchedPeersInfo = UnwrapPromiseRec<
+  ReturnType<typeof fetchNodeInfo>
+>;
+
+const peersRequest = new T.PeersRequest();
+peersRequest.setIncludeBootstrappers(false);
+
+export async function fetchPeersInfo() {
+  const [listRes, statsRes] = await Promise.all([
+    client.peerList(peersRequest, meta),
+    client.peerStats(peersRequest, meta),
+  ]);
+
+  const peerStatsMap = new Map(
+    statsRes.getPeerstatsList().map((s) => [
+      s.getNodeId(),
+      {
+        packetsSent: s.getPacketsSent(),
+        packetsReceived: s.getPacketsReceived(),
+        latency: s.getLatency(),
+      },
+    ])
+  );
+  const peers = listRes.getPeersList().map((p) => {
+    const id = getGoogleStringValue(p.getNodeId());
+    const stats = peerStatsMap.get(id);
+    return {
+      ipAddress: getGoogleStringValue(p.getIp()),
+      id,
+      status: catchupStatusToString(p.getCatchupStatus()),
+      stats,
+    };
+  });
+  return peers;
+}
+
+function catchupStatusToString(status: T.PeerElement.CatchupStatus) {
+  switch (status) {
+    case T.PeerElement.CatchupStatus.UPTODATE:
+      return "Up to date";
+    case T.PeerElement.CatchupStatus.PENDING:
+      return "Pending";
+    default:
+    case T.PeerElement.CatchupStatus.CATCHINGUP:
+      return "Catching up";
+  }
+}

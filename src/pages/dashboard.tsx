@@ -75,20 +75,35 @@ function ConsensusInfo() {
 }
 
 function PeersInfo() {
+  const query = useQuery("peersInfo", API.fetchPeersInfo);
+  if (query.data === undefined) {
+    return null;
+  }
   return (
-    <Table unstackable celled color="red">
-      <Table.Header>
-        <Table.HeaderCell colSpan={2}>Peers</Table.HeaderCell>
-      </Table.Header>
-      <Table.Body>
-        {[["text", "test"]].map(([key, value]) => (
-          <Table.Row key={key}>
-            <Table.Cell>{key}</Table.Cell>
-            <Table.Cell>{value}</Table.Cell>
-          </Table.Row>
-        ))}
-      </Table.Body>
-    </Table>
+    <div style={{ overflowX: "auto" }}>
+      <Table celled unstackable color="red">
+        <Table.Header>
+          <Table.HeaderCell>ID</Table.HeaderCell>
+          <Table.HeaderCell>IP</Table.HeaderCell>
+          <Table.HeaderCell>Status</Table.HeaderCell>
+          <Table.HeaderCell>Latency</Table.HeaderCell>
+          <Table.HeaderCell>Sent</Table.HeaderCell>
+          <Table.HeaderCell>Received</Table.HeaderCell>
+        </Table.Header>
+        <Table.Body>
+          {query.data.map((peer) => (
+            <Table.Row key={peer.id}>
+              <Table.Cell>{peer.id}</Table.Cell>
+              <Table.Cell>{peer.ipAddress}</Table.Cell>
+              <Table.Cell>{peer.status}</Table.Cell>
+              <Table.Cell>{peer.stats?.latency}</Table.Cell>
+              <Table.Cell>{peer.stats?.packetsSent}</Table.Cell>
+              <Table.Cell>{peer.stats?.packetsReceived}</Table.Cell>
+            </Table.Row>
+          ))}
+        </Table.Body>
+      </Table>
+    </div>
   );
 }
 
