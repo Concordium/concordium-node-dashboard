@@ -1,3 +1,21 @@
+@screen-mobile-max:   767px;
+@screen-tablet-min:   (@screen-mobile-max + 1);
+@screen-tablet-max:   1023px;
+@screen-computer-min: (@screen-tablet-max + 1);
+
+@mobile:   ~"only screen and (max-width: @{screen-mobile-max})";
+@tablet:   ~"only screen and (min-width: @{screen-tablet-min}) and (max-width: @{screen-tablet-max}";
+@computer: ~"only screen and (min-width: @{screen-computer-min})";
+
 #app-mount {
     height: 100%;
+}
+
+// Fix extract margin on mobile
+.pusher .ui.menu {
+    margin-bottom: 0;
+}
+
+.content {
+    padding: 1em;
 }

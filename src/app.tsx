@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, Grid, Icon, Menu, Segment, Sidebar } from "semantic-ui-react";
+import { Icon, Menu, Sidebar } from "semantic-ui-react";
 import {
   BrowserRouter as Router,
   Switch,
@@ -11,13 +11,24 @@ import { ControlsPage } from "./pages/controls";
 import { BlockExplorerPage } from "./pages/block-explorer";
 import logo from "~/assets/concordium-logo-no-text-dark.svg";
 import { useDeviceScreen } from "./utils";
+import { QueryClient, QueryClientProvider } from "react-query";
+
+const queryClient = new QueryClient();
 
 export function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Navigation />
+    </QueryClientProvider>
+  );
+}
+
+function Navigation() {
   const device = useDeviceScreen();
-  const isMobile = device === "mobile";
-  const [menuActivated, setMenuActivated] = useState(!isMobile);
-  const menuVisible = !isMobile || menuActivated;
-  const dimmed = isMobile && menuActivated;
+  const allowHidingMenu = device !== "computer";
+  const [menuActivated, setMenuActivated] = useState(!allowHidingMenu);
+  const menuVisible = !allowHidingMenu || menuActivated;
+  const dimmed = allowHidingMenu && menuActivated;
   return (
     <Router>
       <Sidebar.Pushable>
@@ -26,7 +37,7 @@ export function App() {
           icon="labeled"
           vertical
           width="thin"
-          animation={isMobile ? "overlay" : "push"}
+          animation={allowHidingMenu ? "overlay" : "push"}
           visible={menuVisible}
           onHide={() => setMenuActivated(false)}
         >
@@ -50,7 +61,7 @@ export function App() {
           </Menu.Item>
         </Sidebar>
         <Sidebar.Pusher dimmed={dimmed}>
-          {isMobile ? (
+          {allowHidingMenu ? (
             <Menu>
               <Menu.Item onClick={() => setMenuActivated(!menuActivated)}>
                 <Icon name="bars" />
