@@ -120,7 +120,10 @@ function NodeInfo(props: InfoProps) {
   };
   return (
     <>
-      <Header>Node</Header>
+      <Header>
+        Node
+        <Header.Subheader>Node specific information</Header.Subheader>
+      </Header>
       <KeyValueTable color="blue" keyValues={info} />
     </>
   );
@@ -146,7 +149,12 @@ function BakingInfo(props: InfoProps) {
   };
   return (
     <>
-      <Header>Baking</Header>
+      <Header>
+        Baking
+        <Header.Subheader>
+          The current baking status of the node
+        </Header.Subheader>
+      </Header>
       <KeyValueTable color="purple" keyValues={info} />
     </>
   );
@@ -172,7 +180,10 @@ function ConsensusInfo(props: InfoProps) {
 
   return (
     <>
-      <Header>Consensus</Header>
+      <Header>
+        Consensus
+        <Header.Subheader>Information related to consensus</Header.Subheader>
+      </Header>
       <KeyValueTable color="green" keyValues={info} />
     </>
   );
@@ -183,7 +194,15 @@ function PeersInfo(props: InfoProps) {
 
   return (
     <div style={{ overflowX: "auto" }}>
-      <Header>Peers</Header>
+      <Header>
+        Peers{" "}
+        {data?.peers === undefined ? null : (
+          <Label color="grey" size="mini" circular>
+            {data.peers.length}
+          </Label>
+        )}
+        <Header.Subheader>Externally connected peers</Header.Subheader>
+      </Header>
       <Table celled unstackable color="red">
         <Table.Header>
           <Table.Row>
