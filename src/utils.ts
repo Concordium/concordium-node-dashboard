@@ -46,8 +46,10 @@ export function formatDurationInMillis(millis: number) {
   return formatDuration(
     intervalToDuration({
       start: 0,
-      end: millis * 1000,
+      end: millis,
     }),
-    { delimiter: ", " }
+    {
+      delimiter: ", ",
+    }
   );
 }

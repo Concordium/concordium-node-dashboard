@@ -1,106 +1,197 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Container,
   Grid,
   Header,
+  Loader,
+  Segment,
+  Statistic,
   StrictTableProps,
   Table,
 } from "semantic-ui-react";
-import { useQuery } from "react-query";
+import { QueryObserverResult, useQuery } from "react-query";
 import * as API from "../api";
-import { formatDurationInMillis } from "../utils";
+import { formatDurationInMillis, UnwrapPromiseRec } from "../utils";
 import { formatRFC3339 } from "date-fns";
+import { mapValues, range, repeat } from "lodash";
+
+async function fetchDashboadInfo() {
+  const [node, peer, peers, consensus] = await Promise.all([
+    API.fetchNodeInfo(),
+    API.fetchPeerInfo(),
+    API.fetchPeersInfo(),
+    API.fetchConsensusInfo(),
+  ]);
+  return { node, peer, peers, consensus };
+}
+
+type DashboardInfo = UnwrapPromiseRec<ReturnType<typeof fetchDashboadInfo>>;
 
 export function DashboardPage() {
+  const [refetchInterval, setRefetchInterval] = useState(2000);
+  const infoQuery = useQuery("dashboardInfo", fetchDashboadInfo, {
+    refetchInterval,
+  });
   return (
     <Container className="content">
       <Header dividing textAlign="center">
         Dashboard
       </Header>
-      <Grid columns={3} stackable divided>
-        <Grid.Row>
-          <Grid.Column>
-            <NodeInfo />
-          </Grid.Column>
-          <Grid.Column>
-            <BakingInfo />
-          </Grid.Column>
-          <Grid.Column>
-            <ConsensusInfo />
-          </Grid.Column>
-        </Grid.Row>
-        <Grid.Row>
-          <Grid.Column width={16}>
-            <PeersInfo />
-          </Grid.Column>
-        </Grid.Row>
-      </Grid>
+      <Statistic size="mini">
+        <Statistic.Value>
+          {(refetchInterval / 1000).toFixed(1)}s
+        </Statistic.Value>
+        <Statistic.Label>Polling interval</Statistic.Label>
+        <input
+          type="range"
+          min={1000}
+          step={500}
+          max={10000}
+          value={refetchInterval}
+          onChange={(e) => setRefetchInterval(parseInt(e.target.value))}
+        />
+      </Statistic>
+      <Loader active={infoQuery.isFetching} inline size="small"></Loader>
+
+      <Segment loading={infoQuery.isLoading}>
+        <Grid stackable>
+          <Grid.Row>
+            <Grid.Column tablet={8} computer={5}>
+              <NodeInfo infoQuery={infoQuery} />
+            </Grid.Column>
+            <Grid.Column tablet={8} computer={4}>
+              <BakingInfo infoQuery={infoQuery} />
+            </Grid.Column>
+            <Grid.Column tablet={16} computer={7}>
+              <ConsensusInfo infoQuery={infoQuery} />
+            </Grid.Column>
+          </Grid.Row>
+          <Grid.Row>
+            <Grid.Column width={16}>
+              <PeersInfo infoQuery={infoQuery} />
+            </Grid.Column>
+          </Grid.Row>
+        </Grid>
+      </Segment>
     </Container>
   );
 }
 
-function NodeInfo() {
-  const query = useQuery("nodeInfo", API.fetchNodeInfo);
+type InfoProps = {
+  infoQuery: QueryObserverResult<DashboardInfo>;
+};
 
-  if (query.data === undefined) {
-    return null;
-  }
-  const nodeInfo = {
-    ID: <span>{query.data.id}</span>,
-    Version: <span>{query.data.version}</span>,
-    Uptime: <span>{formatDurationInMillis(query.data.uptime)}</span>,
-    Localtime: (
-      <span>{formatRFC3339(query.data.localTime, { fractionDigits: 3 })}</span>
-    ),
-  };
-  return <KeyValueTable color="blue" header="Node" keyValues={nodeInfo} />;
-}
+function NodeInfo(props: InfoProps) {
+  const { data } = props.infoQuery;
 
-function BakingInfo() {
-  const nodeInfo = {
-    ID: <span>arstarst</span>,
-    Version: <span>1.0.2</span>,
-  };
-  return <KeyValueTable color="purple" header="Baking" keyValues={nodeInfo} />;
-}
-
-function ConsensusInfo() {
-  const nodeInfo = {
-    ID: <span>arstarst</span>,
-    Version: <span>1.0.2</span>,
+  const info = {
+    ID: data?.node.id,
+    Version: data?.peer.version,
+    Uptime:
+      data !== undefined ? formatDurationInMillis(data.peer.uptime) : undefined,
+    Localtime:
+      data !== undefined ? formatRFC3339(data?.node.localTime) : undefined,
   };
   return (
-    <KeyValueTable color="green" header="Consensus" keyValues={nodeInfo} />
+    <>
+      <Header>Node</Header>
+      <KeyValueTable color="blue" keyValues={info} />
+    </>
   );
 }
 
-function PeersInfo() {
-  const query = useQuery("peersInfo", API.fetchPeersInfo);
-  if (query.data === undefined) {
-    return null;
-  }
+function BakingInfo(props: InfoProps) {
+  const { data } = props.infoQuery;
+
+  const info = {
+    "Baker ID": data === undefined ? undefined : data.node.bakerId ?? "None",
+    "Baking Committee":
+      data === undefined
+        ? undefined
+        : data.node.inBakingCommittee
+        ? "Yes"
+        : "No",
+    "Finalization Committee":
+      data === undefined
+        ? undefined
+        : data?.node.inFinalizationCommittee
+        ? "Yes"
+        : "No",
+  };
+  return (
+    <>
+      <Header>Baking</Header>
+      <KeyValueTable color="purple" keyValues={info} />
+    </>
+  );
+}
+
+function ConsensusInfo(props: InfoProps) {
+  const { data } = props.infoQuery;
+
+  let info = {
+    "Last block received":
+      data !== undefined
+        ? formatRFC3339(data.consensus.blockLastReceivedTime)
+        : undefined,
+    "Last finalization":
+      data !== undefined
+        ? formatRFC3339(data.consensus.lastFinalizedTime)
+        : undefined,
+    "Finalization period average (EMA)":
+      data !== undefined
+        ? formatDurationInMillis(data.consensus.finalizationPeriodEMA * 1000)
+        : undefined,
+  };
+
+  return (
+    <>
+      <Header>Consensus</Header>
+      <KeyValueTable color="green" keyValues={info} />
+    </>
+  );
+}
+
+function PeersInfo(props: InfoProps) {
+  const { data } = props.infoQuery;
+
   return (
     <div style={{ overflowX: "auto" }}>
+      <Header>Peers</Header>
       <Table celled unstackable color="red">
         <Table.Header>
-          <Table.HeaderCell>ID</Table.HeaderCell>
-          <Table.HeaderCell>IP</Table.HeaderCell>
-          <Table.HeaderCell>Status</Table.HeaderCell>
-          <Table.HeaderCell>Latency</Table.HeaderCell>
-          <Table.HeaderCell>Sent</Table.HeaderCell>
-          <Table.HeaderCell>Received</Table.HeaderCell>
+          <Table.Row>
+            <Table.HeaderCell>ID</Table.HeaderCell>
+            <Table.HeaderCell>Address</Table.HeaderCell>
+            <Table.HeaderCell>Latency (ms)</Table.HeaderCell>
+            <Table.HeaderCell>Sent</Table.HeaderCell>
+            <Table.HeaderCell>Received</Table.HeaderCell>
+            <Table.HeaderCell>Status</Table.HeaderCell>
+          </Table.Row>
         </Table.Header>
         <Table.Body>
-          {query.data.map((peer) => (
+          {data?.peers.map((peer) => (
             <Table.Row key={peer.id}>
               <Table.Cell>{peer.id}</Table.Cell>
-              <Table.Cell>{peer.ipAddress}</Table.Cell>
-              <Table.Cell>{peer.status}</Table.Cell>
+              <Table.Cell>{peer.address}</Table.Cell>
               <Table.Cell>{peer.stats?.latency}</Table.Cell>
               <Table.Cell>{peer.stats?.packetsSent}</Table.Cell>
               <Table.Cell>{peer.stats?.packetsReceived}</Table.Cell>
+              <Table.Cell>{peer.status}</Table.Cell>
             </Table.Row>
           ))}
+          {data === undefined
+            ? range(8).map((i) => (
+                <Table.Row key={i}>
+                  <Table.Cell>-</Table.Cell>
+                  <Table.Cell>-</Table.Cell>
+                  <Table.Cell>-</Table.Cell>
+                  <Table.Cell>-</Table.Cell>
+                  <Table.Cell>-</Table.Cell>
+                  <Table.Cell>-</Table.Cell>
+                </Table.Row>
+              ))
+            : null}
         </Table.Body>
       </Table>
     </div>
@@ -108,7 +199,6 @@ function PeersInfo() {
 }
 
 type KeyValueTableProps = {
-  header: string;
   color: StrictTableProps["color"];
   keyValues: Record<string, React.ReactNode>;
 };
@@ -116,9 +206,6 @@ type KeyValueTableProps = {
 function KeyValueTable(props: KeyValueTableProps) {
   return (
     <Table unstackable definition color={props.color}>
-      <Table.Header>
-        <Table.HeaderCell colSpan={2}>{props.header}</Table.HeaderCell>
-      </Table.Header>
       <Table.Body>
         {Object.entries(props.keyValues).map(([key, value]) => (
           <Table.Row key={key}>

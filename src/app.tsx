@@ -68,17 +68,19 @@ function Navigation() {
               </Menu.Item>
             </Menu>
           ) : null}
-          <Switch>
-            <Route path="/" exact>
-              <DashboardPage />
-            </Route>
-            <Route path="/controls">
-              <ControlsPage />
-            </Route>
-            <Route path="/block-explorer">
-              <BlockExplorerPage />
-            </Route>
-          </Switch>
+          <div style={{ overflowY: "auto", height: "100vh" }}>
+            <Switch>
+              <Route path="/" exact>
+                <DashboardPage />
+              </Route>
+              <Route path="/controls">
+                <ControlsPage />
+              </Route>
+              <Route path="/block-explorer">
+                <BlockExplorerPage />
+              </Route>
+            </Switch>
+          </div>
         </Sidebar.Pusher>
       </Sidebar.Pushable>
     </Router>
