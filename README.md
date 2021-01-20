@@ -51,6 +51,11 @@ To watch files and automate the build run:
 npm run dev
 ```
 
+### Using a node on stagenet
+
+If you want to use a node at a different address, update the envoy config to this address.
+
+
 ### Before commiting:
 
 - Everything should typecheck `npm run typecheck`
@@ -64,3 +69,5 @@ Run the following command, which will create a `dist` directory containing the b
 ```
 npm run build
 ```
+
+

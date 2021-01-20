@@ -104,7 +104,7 @@ type ConsensusInfo = {
   blockArrivePeriodEMA: number;
   blockArrivePeriodEMSD: number;
   blockLastArrivedTime: Date;
-  blockLastReceivedTime: Date;
+  blockLastReceivedTime: Date | null;
   blockReceiveLatencyEMA: number;
   blockReceiveLatencyEMSD: number;
   blockReceivePeriodEMA: number;
@@ -119,7 +119,7 @@ type ConsensusInfo = {
   genesisTime: Date;
   lastFinalizedBlock: string;
   lastFinalizedBlockHeight: number;
-  lastFinalizedTime: Date;
+  lastFinalizedTime: Date | null;
   slotDuration: number;
   transactionsPerBlockEMA: number;
   transactionsPerBlockEMSD: number;
@@ -138,7 +138,31 @@ export async function fetchConsensusInfo(): Promise<ConsensusInfo> {
     "lastFinalizedTime",
   ];
   for (const field of dateFields) {
-    json[field] = new Date(Date.parse(json[field]));
+    const dateString = json[field];
+    if (dateString !== null) {
+      json[field] = new Date(Date.parse(dateString));
+    }
   }
   return json;
+}
+
+type BirkParametersBaker = {
+  bakerAccount: string;
+  bakerId: number;
+  bakerLotteryPower: number;
+};
+
+type BirkParametersInfo = {
+  bakers: BirkParametersBaker[];
+  electionDifficulty: number;
+  electionNonce: string;
+};
+
+export async function fetchBirkParameters(
+  blockHash: string
+): Promise<BirkParametersInfo> {
+  const request = new T.BlockHash();
+  request.setBlockHash(blockHash);
+  const res = await client.getBirkParameters(request, meta);
+  return JSON.parse(res.getValue());
 }

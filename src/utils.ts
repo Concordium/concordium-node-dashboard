@@ -1,4 +1,4 @@
-import { formatDuration, intervalToDuration } from "date-fns";
+import { formatDuration, formatRFC3339, intervalToDuration } from "date-fns";
 import { useState, useEffect } from "react";
 
 /**
@@ -52,4 +52,16 @@ export function formatDurationInMillis(millis: number) {
       delimiter: ", ",
     }
   );
+}
+
+export function formatDate(date: Date) {
+  try {
+    return formatRFC3339(date);
+  } catch (e) {
+    if (e instanceof RangeError) {
+      console.error("Failed formatting date", date);
+      return e.message;
+    }
+    throw e;
+  }
 }

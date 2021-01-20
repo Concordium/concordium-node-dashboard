@@ -1,22 +1,23 @@
 import React, { useState } from "react";
 import {
   Container,
+  Dimmer,
   Grid,
   Header,
   Icon,
   Label,
   Loader,
   Message,
-  Segment,
+  Rail,
   Statistic,
   StrictTableProps,
   Table,
 } from "semantic-ui-react";
 import { QueryObserverResult, useQuery } from "react-query";
 import * as API from "../api";
-import { formatDurationInMillis, UnwrapPromiseRec } from "../utils";
-import { formatRFC3339 } from "date-fns";
-import { range } from "lodash";
+import { formatDate, formatDurationInMillis, UnwrapPromiseRec } from "../utils";
+import { memoize, range } from "lodash";
+import { Account, Percentage } from "~shared";
 
 async function fetchDashboadInfo() {
   const [node, peer, peers, consensus] = await Promise.all([
@@ -25,7 +26,9 @@ async function fetchDashboadInfo() {
     API.fetchPeersInfo(),
     API.fetchConsensusInfo(),
   ]);
-  return { node, peer, peers, consensus };
+  const birk = await memoize(API.fetchBirkParameters)(consensus.bestBlock);
+
+  return { node, peer, peers, consensus, birk };
 }
 
 type DashboardInfo = UnwrapPromiseRec<ReturnType<typeof fetchDashboadInfo>>;
@@ -40,7 +43,7 @@ export function DashboardPage() {
     }
   );
   return (
-    <Container className="content">
+    <Container className="page-content">
       <Header dividing textAlign="center">
         Dashboard
       </Header>
@@ -54,7 +57,7 @@ export function DashboardPage() {
         <Grid.Row>
           <Grid.Column width={8} floated="left">
             <Loader
-              active={infoQuery.isFetching}
+              active={infoQuery.isFetching && infoQuery.isFetched}
               inline
               indeterminate
               size="small"
@@ -79,26 +82,32 @@ export function DashboardPage() {
         </Grid.Row>
       </Grid>
 
-      <Segment loading={infoQuery.isLoading || infoQuery.isError}>
-        <Grid stackable padded>
+      <Dimmer.Dimmable>
+        <Grid stackable doubling>
           <Grid.Row>
-            <Grid.Column tablet={8} computer={5}>
+            <Grid.Column tablet={8} computer={8}>
               <NodeInfo infoQuery={infoQuery} />
             </Grid.Column>
-            <Grid.Column tablet={8} computer={4}>
+            {/* <Grid.Column tablet={8} computer={5}>
               <BakingInfo infoQuery={infoQuery} />
-            </Grid.Column>
-            <Grid.Column tablet={16} computer={7}>
+            </Grid.Column> */}
+            <Grid.Column tablet={8} computer={8}>
               <ConsensusInfo infoQuery={infoQuery} />
             </Grid.Column>
           </Grid.Row>
           <Grid.Row>
-            <Grid.Column width={16}>
+            <Grid.Column computer={10} tablet={16}>
               <PeersInfo infoQuery={infoQuery} />
+            </Grid.Column>
+            <Grid.Column computer={6} tablet={16}>
+              <BakersInfo infoQuery={infoQuery} />
             </Grid.Column>
           </Grid.Row>
         </Grid>
-      </Segment>
+        <Dimmer active={infoQuery.isLoading || infoQuery.isError} inverted>
+          <Loader size="massive" />
+        </Dimmer>
+      </Dimmer.Dimmable>
     </Container>
   );
 }
@@ -116,7 +125,13 @@ function NodeInfo(props: InfoProps) {
     Uptime:
       data !== undefined ? formatDurationInMillis(data.peer.uptime) : undefined,
     Localtime:
-      data !== undefined ? formatRFC3339(data?.node.localTime) : undefined,
+      data !== undefined ? formatDate(data?.node.localTime) : undefined,
+    Baking:
+      data === undefined
+        ? undefined
+        : data.node.inBakingCommittee
+        ? "Yes"
+        : "No",
   };
   return (
     <>
@@ -129,48 +144,17 @@ function NodeInfo(props: InfoProps) {
   );
 }
 
-function BakingInfo(props: InfoProps) {
-  const { data } = props.infoQuery;
-
-  const info = {
-    "Baker ID": data === undefined ? undefined : data.node.bakerId ?? "None",
-    "Baking Committee":
-      data === undefined
-        ? undefined
-        : data.node.inBakingCommittee
-        ? "Yes"
-        : "No",
-    "Finalization Committee":
-      data === undefined
-        ? undefined
-        : data?.node.inFinalizationCommittee
-        ? "Yes"
-        : "No",
-  };
-  return (
-    <>
-      <Header>
-        Baking
-        <Header.Subheader>
-          The current baking status of the node
-        </Header.Subheader>
-      </Header>
-      <KeyValueTable color="purple" keyValues={info} />
-    </>
-  );
-}
-
 function ConsensusInfo(props: InfoProps) {
   const { data } = props.infoQuery;
 
   let info = {
     "Last block received":
-      data !== undefined
-        ? formatRFC3339(data.consensus.blockLastReceivedTime)
+      data !== undefined && data.consensus.blockLastReceivedTime !== null
+        ? formatDate(data.consensus.blockLastReceivedTime)
         : undefined,
     "Last finalization":
-      data !== undefined
-        ? formatRFC3339(data.consensus.lastFinalizedTime)
+      data !== undefined && data.consensus.lastFinalizedTime !== null
+        ? formatDate(data.consensus.lastFinalizedTime)
         : undefined,
     "Finalization period average (EMA)":
       data !== undefined
@@ -193,53 +177,109 @@ function PeersInfo(props: InfoProps) {
   const { data } = props.infoQuery;
 
   return (
-    <div style={{ overflowX: "auto" }}>
+    <>
       <Header>
-        Peers{" "}
-        {data?.peers === undefined ? null : (
-          <Label color="grey" size="mini" circular>
-            {data.peers.length}
-          </Label>
-        )}
+        Peers
+        <Label color="grey" size="mini" circular>
+          {data?.peers.length}
+        </Label>
         <Header.Subheader>Externally connected peers</Header.Subheader>
       </Header>
-      <Table celled unstackable color="red">
-        <Table.Header>
-          <Table.Row>
-            <Table.HeaderCell>ID</Table.HeaderCell>
-            <Table.HeaderCell>Address</Table.HeaderCell>
-            <Table.HeaderCell>Latency (ms)</Table.HeaderCell>
-            <Table.HeaderCell>Sent</Table.HeaderCell>
-            <Table.HeaderCell>Received</Table.HeaderCell>
-            <Table.HeaderCell>Status</Table.HeaderCell>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {data?.peers.map((peer) => (
-            <Table.Row key={peer.id}>
-              <Table.Cell>{peer.id}</Table.Cell>
-              <Table.Cell>{peer.address}</Table.Cell>
-              <Table.Cell>{peer.stats?.latency}</Table.Cell>
-              <Table.Cell>{peer.stats?.packetsSent}</Table.Cell>
-              <Table.Cell>{peer.stats?.packetsReceived}</Table.Cell>
-              <Table.Cell>{peer.status}</Table.Cell>
+      <div style={{ overflowX: "auto" }}>
+        <Table unstackable color="red">
+          <Table.Header>
+            <Table.Row>
+              <Table.HeaderCell>ID</Table.HeaderCell>
+              <Table.HeaderCell>Address</Table.HeaderCell>
+              <Table.HeaderCell>Latency</Table.HeaderCell>
+              <Table.HeaderCell>Status</Table.HeaderCell>
             </Table.Row>
-          ))}
-          {data === undefined
-            ? range(8).map((i) => (
-                <Table.Row key={i}>
-                  <Table.Cell>-</Table.Cell>
-                  <Table.Cell>-</Table.Cell>
-                  <Table.Cell>-</Table.Cell>
-                  <Table.Cell>-</Table.Cell>
-                  <Table.Cell>-</Table.Cell>
-                  <Table.Cell>-</Table.Cell>
+          </Table.Header>
+          <Table.Body>
+            {data?.peers.map((peer) => (
+              <Table.Row key={peer.id}>
+                <Table.Cell>{peer.id}</Table.Cell>
+                <Table.Cell>{peer.address}</Table.Cell>
+                <Table.Cell>{peer.stats?.latency}ms</Table.Cell>
+                <Table.Cell>{peer.status}</Table.Cell>
+              </Table.Row>
+            ))}
+            {data === undefined
+              ? range(8).map((i) => (
+                  <Table.Row key={i}>
+                    <Table.Cell>-</Table.Cell>
+                    <Table.Cell>-</Table.Cell>
+                    <Table.Cell>-</Table.Cell>
+                    <Table.Cell>-</Table.Cell>
+                  </Table.Row>
+                ))
+              : null}
+          </Table.Body>
+        </Table>
+      </div>
+    </>
+  );
+}
+
+function BakersInfo(props: InfoProps) {
+  const { data } = props.infoQuery;
+  const isBaking = data?.node.bakerId !== undefined;
+  return (
+    <>
+      <Header>
+        Bakers
+        <Label color="grey" size="mini" circular>
+          {data?.birk.bakers.length}
+        </Label>
+        <Header.Subheader>The bakers in the best block</Header.Subheader>
+      </Header>
+      <div style={{ overflowX: "auto" }}>
+        <Table unstackable color="purple" compact>
+          <Table.Header>
+            <Table.Row>
+              <Table.HeaderCell>ID</Table.HeaderCell>
+              <Table.HeaderCell>Account</Table.HeaderCell>
+              <Table.HeaderCell>Lottery Power</Table.HeaderCell>
+              {isBaking ? <Table.HeaderCell></Table.HeaderCell> : null}
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {data?.birk.bakers.map((baker) => {
+              const isNode = baker.bakerId === data.node.bakerId;
+              return (
+                <Table.Row
+                  key={baker.bakerId}
+                  positive={isNode}
+                  className={isNode ? "baking-node-row" : ""}
+                >
+                  <Table.Cell>{baker.bakerId}</Table.Cell>
+                  <Table.Cell>
+                    <Account address={baker.bakerAccount} />
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Percentage fraction={baker.bakerLotteryPower} />
+                  </Table.Cell>
+                  {isBaking ? (
+                    <Table.Cell>
+                      {isNode ? <Icon name="star" fitted /> : null}
+                    </Table.Cell>
+                  ) : null}
                 </Table.Row>
-              ))
-            : null}
-        </Table.Body>
-      </Table>
-    </div>
+              );
+            })}
+            {data === undefined
+              ? range(8).map((i) => (
+                  <Table.Row key={i}>
+                    <Table.Cell>-</Table.Cell>
+                    <Table.Cell>-</Table.Cell>
+                    <Table.Cell>-</Table.Cell>
+                  </Table.Row>
+                ))
+              : null}
+          </Table.Body>
+        </Table>
+      </div>
+    </>
   );
 }
 
