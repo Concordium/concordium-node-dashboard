@@ -1,4 +1,3 @@
-import { UnwrapPromiseRec } from "./utils";
 import { P2PPromiseClient } from "../grpc-api-client/concordium_p2p_rpc_grpc_web_pb";
 import * as T from "../grpc-api-client/concordium_p2p_rpc_pb";
 
