@@ -61,14 +61,14 @@ function Navigation() {
           </Menu.Item>
         </Sidebar>
         <Sidebar.Pusher dimmed={dimmed}>
-          {allowHidingMenu ? (
-            <Menu>
-              <Menu.Item onClick={() => setMenuActivated(!menuActivated)}>
-                <Icon name="bars" />
-              </Menu.Item>
-            </Menu>
-          ) : null}
           <div style={{ overflowY: "auto", height: "100vh" }}>
+            {allowHidingMenu ? (
+              <Menu>
+                <Menu.Item onClick={() => setMenuActivated(!menuActivated)}>
+                  <Icon name="bars" />
+                </Menu.Item>
+              </Menu>
+            ) : null}
             <Switch>
               <Route path="/" exact>
                 <DashboardPage />
