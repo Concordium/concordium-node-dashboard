@@ -1,6 +1,7 @@
 import { formatDuration, intervalToDuration } from "date-fns";
 import { round } from "lodash";
 import { useState, useEffect } from "react";
+import { Amount } from "./api";
 
 /**
  * Hook for getting the current width of the window.
@@ -60,23 +61,47 @@ export function formatPercentage(fraction: number) {
   return round(fraction * 100, 6) + "%";
 }
 
+type formatDateOptions = {
+  onlyYearMonth?: boolean;
+};
+
 /** Format a date into a string */
-export function formatDate(date: Date) {
+export function formatDate(date: Date, options: formatDateOptions = {}) {
   return date.toLocaleString(undefined, {
-    timeZoneName: "short",
     year: "numeric",
-    hour: "numeric",
-    // second: "numeric",
-    minute: "numeric",
     month: "short",
-    day: "numeric",
-    hour12: false,
+    ...(options.onlyYearMonth ?? false
+      ? {}
+      : {
+          hour12: false,
+          timeZoneName: "short",
+          hour: "numeric",
+          day: "numeric",
+          minute: "numeric",
+        }),
   });
 }
 
+/** Safe way to display integers as a decimal number */
+function formatIntAsDecimal(n: number | BigInt, numberOfdecimals: number) {
+  const str = n.toString().padStart(numberOfdecimals + 1, "0");
+  const int = str.slice(0, -numberOfdecimals);
+  const decimals = str.slice(-numberOfdecimals);
+  return `${int}.${decimals}`;
+}
+
 export function formatBytes(numberOfBytes: number) {
-  const str = numberOfBytes.toString().padStart(4, "0");
-  const int = str.slice(0, -3);
-  const decimals = str.slice(-3);
-  return `${int}.${decimals} kB/s`;
+  return `${formatIntAsDecimal(numberOfBytes, 3)} kB/s`;
+}
+
+export function formatAmount(amount: Amount) {
+  return `${formatIntAsDecimal(amount, 6)} GTU`;
+}
+
+export function whenDefined<A, B>(fn: (a: A) => B, a: A | undefined) {
+  return a === undefined ? undefined : fn(a);
+}
+
+export function whenNotNull<A, B>(fn: (a: A) => B, a: A | null) {
+  return a === null ? null : fn(a);
 }

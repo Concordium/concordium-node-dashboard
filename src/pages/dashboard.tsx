@@ -23,9 +23,10 @@ import {
   formatPercentage,
   UnwrapPromiseRec,
   useDeviceScreen,
+  whenDefined,
 } from "../utils";
 import { mapValues, memoize, range, round } from "lodash";
-import { Account, TimeRelativeToNow } from "../shared";
+import { Account, KeyValueTable, TimeRelativeToNow } from "../shared";
 
 const msInADay = 1000 * 60 * 60 * 24;
 const msInAWeek = msInADay * 7;
@@ -313,7 +314,10 @@ function BakersInfo(props: InfoProps) {
                 >
                   <Table.Cell>{baker.bakerId}</Table.Cell>
                   <Table.Cell>
-                    <Account address={baker.bakerAccount} />
+                    <Account
+                      blockHash={data.consensus.bestBlock}
+                      address={baker.bakerAccount}
+                    />
                   </Table.Cell>
                   <Table.Cell>
                     {formatPercentage(baker.bakerLotteryPower)}
@@ -338,25 +342,5 @@ function BakersInfo(props: InfoProps) {
         </Table>
       </div>
     </>
-  );
-}
-
-type KeyValueTableProps = {
-  color: StrictTableProps["color"];
-  keyValues: Record<string, React.ReactNode>;
-};
-
-function KeyValueTable(props: KeyValueTableProps) {
-  return (
-    <Table unstackable definition color={props.color}>
-      <Table.Body>
-        {Object.entries(props.keyValues).map(([key, value]) => (
-          <Table.Row key={key}>
-            <Table.Cell width={5}>{key}</Table.Cell>
-            <Table.Cell>{value}</Table.Cell>
-          </Table.Row>
-        ))}
-      </Table.Body>
-    </Table>
   );
 }
