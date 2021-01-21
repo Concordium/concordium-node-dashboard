@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Container,
   Dimmer,
+  Divider,
   Grid,
   Header,
   Icon,
@@ -9,7 +10,9 @@ import {
   Loader,
   Message,
   Rail,
+  Ref,
   Statistic,
+  Sticky,
   StrictTableProps,
   Table,
 } from "semantic-ui-react";
@@ -21,6 +24,7 @@ import {
   formatDurationInMillis,
   formatPercentage,
   UnwrapPromiseRec,
+  useDeviceScreen,
 } from "../utils";
 import { memoize, range } from "lodash";
 import { Account, TimeRelativeToNow } from "../shared";
@@ -48,6 +52,12 @@ export function DashboardPage() {
       refetchInterval,
     }
   );
+
+  const deviceScreen = useDeviceScreen();
+  const peersRef = useRef<HTMLElement>(null);
+  const bakersRef = useRef<HTMLElement>(null);
+  const isComputer = deviceScreen === "computer";
+
   return (
     <Container className="page-content">
       <Header dividing textAlign="center">
@@ -89,22 +99,38 @@ export function DashboardPage() {
       </Grid>
 
       <Dimmer.Dimmable>
+        <Divider horizontal>
+          <Header>Network</Header>
+        </Divider>
         <Grid stackable doubling>
           <Grid.Row>
-            <Grid.Column tablet={8} computer={8}>
-              <NodeInfo infoQuery={infoQuery} />
-            </Grid.Column>
-            <Grid.Column tablet={8} computer={8}>
-              <ConsensusInfo infoQuery={infoQuery} />
-            </Grid.Column>
-          </Grid.Row>
-          <Grid.Row>
-            <Grid.Column computer={10} tablet={16}>
-              <PeersInfo infoQuery={infoQuery} />
-            </Grid.Column>
             <Grid.Column computer={6} tablet={16}>
-              <BakersInfo infoQuery={infoQuery} />
+              <Sticky context={peersRef} active={isComputer}>
+                <NodeInfo infoQuery={infoQuery} />
+              </Sticky>
             </Grid.Column>
+            <Ref innerRef={peersRef}>
+              <Grid.Column computer={10} tablet={16}>
+                <PeersInfo infoQuery={infoQuery} />
+              </Grid.Column>
+            </Ref>
+          </Grid.Row>
+        </Grid>
+        <Divider horizontal>
+          <Header>Consensus</Header>
+        </Divider>
+        <Grid doubling>
+          <Grid.Row reversed="computer">
+            <Grid.Column computer={6} tablet={16}>
+              <Sticky context={bakersRef} active={isComputer}>
+                <ConsensusInfo infoQuery={infoQuery} />
+              </Sticky>
+            </Grid.Column>
+            <Ref innerRef={bakersRef}>
+              <Grid.Column computer={10} tablet={16}>
+                <BakersInfo infoQuery={infoQuery} />
+              </Grid.Column>
+            </Ref>
           </Grid.Row>
         </Grid>
         <Dimmer active={infoQuery.isLoading || infoQuery.isError} inverted>
@@ -247,7 +273,6 @@ function BakersInfo(props: InfoProps) {
               <Table.HeaderCell>ID</Table.HeaderCell>
               <Table.HeaderCell>Account</Table.HeaderCell>
               <Table.HeaderCell>Lottery Power</Table.HeaderCell>
-              {isBaking ? <Table.HeaderCell></Table.HeaderCell> : null}
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -266,11 +291,6 @@ function BakersInfo(props: InfoProps) {
                   <Table.Cell>
                     {formatPercentage(baker.bakerLotteryPower)}
                   </Table.Cell>
-                  {isBaking ? (
-                    <Table.Cell>
-                      {isNode ? <Icon name="star" fitted /> : null}
-                    </Table.Cell>
-                  ) : null}
                 </Table.Row>
               );
             })}
@@ -301,7 +321,7 @@ function KeyValueTable(props: KeyValueTableProps) {
       <Table.Body>
         {Object.entries(props.keyValues).map(([key, value]) => (
           <Table.Row key={key}>
-            <Table.Cell>{key}</Table.Cell>
+            <Table.Cell width={5}>{key}</Table.Cell>
             <Table.Cell>{value}</Table.Cell>
           </Table.Row>
         ))}
