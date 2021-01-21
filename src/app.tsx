@@ -24,7 +24,7 @@ export function App() {
 }
 
 function Navigation() {
-  const device = useDeviceScreen();
+  const device = useDeviceScreen(150);
   const allowHidingMenu = device !== "computer";
   const [menuActivated, setMenuActivated] = useState(false);
   const menuVisible = !allowHidingMenu || menuActivated;
