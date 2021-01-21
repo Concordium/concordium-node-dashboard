@@ -7,7 +7,20 @@ cache:
     - node_modules/
 
 stages:
+  - build
   - lint
+
+build-proto:
+  stage: build
+  image: juanjodiaz/grpc-web-generator:1.2.0
+  cache: {}
+  script:
+    - ./build_grpc-web-client.sh
+  artifacts:
+    paths:
+      - ./grpc-api-client
+    untracked: false
+    expire_in: 7 days
 
 typecheck:
   stage: lint
