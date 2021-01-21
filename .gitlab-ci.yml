@@ -2,6 +2,9 @@
 default:
   image: node:15.5.1
 
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
 cache:
   paths:
     - node_modules/
