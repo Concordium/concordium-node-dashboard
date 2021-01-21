@@ -1,5 +1,5 @@
-import { round } from "lodash";
-import React, { useCallback } from "react";
+import { formatDistanceStrict } from "date-fns";
+import React, { useCallback, useEffect, useState } from "react";
 import { Icon, Label, Popup } from "semantic-ui-react";
 
 type AccountProps = {
@@ -29,10 +29,22 @@ export function Account(props: AccountProps) {
   );
 }
 
-type PercentageProps = {
-  fraction: number;
+type TimeRelatedToNowDistance = {
+  time: Date;
 };
 
-export function Percentage(props: PercentageProps) {
-  return <>{round(props.fraction * 100, 6) + "%"}</>;
+/** Display a human readable distance to or from the given time e.g. 5 seconds ago */
+export function TimeRelativeToNow(props: TimeRelatedToNowDistance) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+  return (
+    <>
+      {formatDistanceStrict(props.time, now, {
+        addSuffix: true,
+      })}
+    </>
+  );
 }

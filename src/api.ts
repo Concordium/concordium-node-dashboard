@@ -60,7 +60,11 @@ export async function fetchPeersInfo() {
       stats,
     };
   });
-  return peers;
+  return {
+    avgBpsIn: statsRes.getAvgBpsIn(),
+    avgBpsOut: statsRes.getAvgBpsOut(),
+    peers,
+  };
 }
 
 function catchupStatusToString(status: T.PeerElement.CatchupStatus) {

@@ -1,4 +1,5 @@
-import { formatDuration, formatRFC3339, intervalToDuration } from "date-fns";
+import { formatDuration, intervalToDuration } from "date-fns";
+import { round } from "lodash";
 import { useState, useEffect } from "react";
 
 /**
@@ -54,14 +55,28 @@ export function formatDurationInMillis(millis: number) {
   );
 }
 
+/** Turn a float into a percentage string */
+export function formatPercentage(fraction: number) {
+  return round(fraction * 100, 6) + "%";
+}
+
+/** Format a date into a string */
 export function formatDate(date: Date) {
-  try {
-    return formatRFC3339(date);
-  } catch (e) {
-    if (e instanceof RangeError) {
-      console.error("Failed formatting date", date);
-      return e.message;
-    }
-    throw e;
-  }
+  return date.toLocaleString(undefined, {
+    timeZoneName: "short",
+    year: "numeric",
+    hour: "numeric",
+    // second: "numeric",
+    minute: "numeric",
+    month: "short",
+    day: "numeric",
+    hour12: false,
+  });
+}
+
+export function formatBytes(numberOfBytes: number) {
+  const str = numberOfBytes.toString().padStart(4, "0");
+  const int = str.slice(0, -3);
+  const decimals = str.slice(-3);
+  return `${int}.${decimals} kB/s`;
 }

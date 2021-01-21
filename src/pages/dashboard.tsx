@@ -15,12 +15,18 @@ import {
 } from "semantic-ui-react";
 import { QueryObserverResult, useQuery } from "react-query";
 import * as API from "../api";
-import { formatDate, formatDurationInMillis, UnwrapPromiseRec } from "../utils";
+import {
+  formatBytes,
+  formatDate,
+  formatDurationInMillis,
+  formatPercentage,
+  UnwrapPromiseRec,
+} from "../utils";
 import { memoize, range } from "lodash";
-import { Account, Percentage } from "~shared";
+import { Account, TimeRelativeToNow } from "../shared";
 
 async function fetchDashboadInfo() {
-  const [node, peer, peers, consensus] = await Promise.all([
+  const [node, peer, peersInfo, consensus] = await Promise.all([
     API.fetchNodeInfo(),
     API.fetchPeerInfo(),
     API.fetchPeersInfo(),
@@ -28,7 +34,7 @@ async function fetchDashboadInfo() {
   ]);
   const birk = await memoize(API.fetchBirkParameters)(consensus.bestBlock);
 
-  return { node, peer, peers, consensus, birk };
+  return { node, peer, peersInfo, consensus, birk };
 }
 
 type DashboardInfo = UnwrapPromiseRec<ReturnType<typeof fetchDashboadInfo>>;
@@ -88,9 +94,6 @@ export function DashboardPage() {
             <Grid.Column tablet={8} computer={8}>
               <NodeInfo infoQuery={infoQuery} />
             </Grid.Column>
-            {/* <Grid.Column tablet={8} computer={5}>
-              <BakingInfo infoQuery={infoQuery} />
-            </Grid.Column> */}
             <Grid.Column tablet={8} computer={8}>
               <ConsensusInfo infoQuery={infoQuery} />
             </Grid.Column>
@@ -126,6 +129,10 @@ function NodeInfo(props: InfoProps) {
       data !== undefined ? formatDurationInMillis(data.peer.uptime) : undefined,
     Localtime:
       data !== undefined ? formatDate(data?.node.localTime) : undefined,
+    "Average sent":
+      data !== undefined ? formatBytes(data.peersInfo.avgBpsOut) : undefined,
+    "Average received":
+      data !== undefined ? formatBytes(data.peersInfo.avgBpsIn) : undefined,
     Baking:
       data === undefined
         ? undefined
@@ -149,13 +156,13 @@ function ConsensusInfo(props: InfoProps) {
 
   let info = {
     "Last block received":
-      data !== undefined && data.consensus.blockLastReceivedTime !== null
-        ? formatDate(data.consensus.blockLastReceivedTime)
-        : undefined,
+      data !== undefined && data.consensus.blockLastReceivedTime !== null ? (
+        <TimeRelativeToNow time={data.consensus.blockLastReceivedTime} />
+      ) : undefined,
     "Last finalization":
-      data !== undefined && data.consensus.lastFinalizedTime !== null
-        ? formatDate(data.consensus.lastFinalizedTime)
-        : undefined,
+      data !== undefined && data.consensus.lastFinalizedTime !== null ? (
+        <TimeRelativeToNow time={data.consensus.lastFinalizedTime} />
+      ) : undefined,
     "Finalization period average (EMA)":
       data !== undefined
         ? formatDurationInMillis(data.consensus.finalizationPeriodEMA * 1000)
@@ -181,7 +188,7 @@ function PeersInfo(props: InfoProps) {
       <Header>
         Peers
         <Label color="grey" size="mini" circular>
-          {data?.peers.length}
+          {data?.peersInfo.peers.length}
         </Label>
         <Header.Subheader>Externally connected peers</Header.Subheader>
       </Header>
@@ -196,7 +203,7 @@ function PeersInfo(props: InfoProps) {
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {data?.peers.map((peer) => (
+            {data?.peersInfo.peers.map((peer) => (
               <Table.Row key={peer.id}>
                 <Table.Cell>{peer.id}</Table.Cell>
                 <Table.Cell>{peer.address}</Table.Cell>
@@ -257,7 +264,7 @@ function BakersInfo(props: InfoProps) {
                     <Account address={baker.bakerAccount} />
                   </Table.Cell>
                   <Table.Cell>
-                    <Percentage fraction={baker.bakerLotteryPower} />
+                    {formatPercentage(baker.bakerLotteryPower)}
                   </Table.Cell>
                   {isBaking ? (
                     <Table.Cell>
