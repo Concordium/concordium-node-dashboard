@@ -1,33 +1,33 @@
-@screen-mobile-max:   767px;
-@screen-tablet-min:   (@screen-mobile-max + 1);
-@screen-tablet-max:   1023px;
+@screen-mobile-max: 767px;
+@screen-tablet-min: (@screen-mobile-max + 1);
+@screen-tablet-max: 1023px;
 @screen-computer-min: (@screen-tablet-max + 1);
 
-@mobile:   ~"only screen and (max-width: @{screen-mobile-max})";
-@tablet:   ~"only screen and (min-width: @{screen-tablet-min}) and (max-width: @{screen-tablet-max}";
+@mobile: ~"only screen and (max-width: @{screen-mobile-max})";
+@tablet: ~"only screen and (min-width: @{screen-tablet-min}) and (max-width: @{screen-tablet-max}";
 @computer: ~"only screen and (min-width: @{screen-computer-min})";
 
 #app-mount {
-    height: 100%;
+  height: 100%;
 }
 
 // Fix extract margin on mobile
 .pusher .ui.menu {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .page-content {
-    margin-top: 1em;
+  margin-top: 1em;
 }
 
 .ui.inverted.dimmer > .content > * {
-    color: rgba(0,0,0,.87) !important;
+  color: rgba(0, 0, 0, 0.87) !important;
 }
 
 .monospace {
-    font-family: 'Courier New', Courier, monospace;
+  font-family: "Courier New", Courier, monospace;
 }
 
 .baking-node-row {
-    font-weight: bold;
+  font-weight: bold;
 }
