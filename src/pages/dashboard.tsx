@@ -5,11 +5,9 @@ import {
   Divider,
   Grid,
   Header,
-  Icon,
   Label,
   Loader,
   Message,
-  Rail,
   Ref,
   Statistic,
   Sticky,
@@ -26,8 +24,13 @@ import {
   UnwrapPromiseRec,
   useDeviceScreen,
 } from "../utils";
-import { memoize, range } from "lodash";
+import { mapValues, memoize, range, round } from "lodash";
 import { Account, TimeRelativeToNow } from "../shared";
+
+const msInADay = 1000 * 60 * 60 * 24;
+const msInAWeek = msInADay * 7;
+const msInAMonth = msInADay * 30;
+const msInAYear = msInAMonth * 12;
 
 async function fetchDashboadInfo() {
   const [node, peer, peersInfo, consensus] = await Promise.all([
@@ -38,7 +41,15 @@ async function fetchDashboadInfo() {
   ]);
   const birk = await memoize(API.fetchBirkParameters)(consensus.bestBlock);
 
-  return { node, peer, peersInfo, consensus, birk };
+  const blocksPrMilliseconds = birk.electionDifficulty / consensus.slotDuration;
+  const expectedBlocks = {
+    day: msInADay * blocksPrMilliseconds,
+    week: msInAWeek * blocksPrMilliseconds,
+    month: msInAMonth * blocksPrMilliseconds,
+    year: msInAYear * blocksPrMilliseconds,
+  };
+
+  return { node, peer, peersInfo, consensus, birk, expectedBlocks };
 }
 
 type DashboardInfo = UnwrapPromiseRec<ReturnType<typeof fetchDashboadInfo>>;
@@ -182,17 +193,21 @@ function ConsensusInfo(props: InfoProps) {
 
   let info = {
     "Last block received":
-      data !== undefined && data.consensus.blockLastReceivedTime !== null ? (
+      data === undefined ||
+      data.consensus.blockLastReceivedTime === null ? undefined : (
         <TimeRelativeToNow time={data.consensus.blockLastReceivedTime} />
-      ) : undefined,
+      ),
     "Last finalization":
-      data !== undefined && data.consensus.lastFinalizedTime !== null ? (
+      data === undefined ||
+      data.consensus.lastFinalizedTime === null ? undefined : (
         <TimeRelativeToNow time={data.consensus.lastFinalizedTime} />
-      ) : undefined,
+      ),
     "Finalization period average (EMA)":
-      data !== undefined
-        ? formatDurationInMillis(data.consensus.finalizationPeriodEMA * 1000)
-        : undefined,
+      data === undefined
+        ? undefined
+        : formatDurationInMillis(data.consensus.finalizationPeriodEMA * 1000),
+    "Expected blocks":
+      data === undefined ? undefined : data.expectedBlocks.day + " block/day",
   };
 
   return (
@@ -256,7 +271,6 @@ function PeersInfo(props: InfoProps) {
 
 function BakersInfo(props: InfoProps) {
   const { data } = props.infoQuery;
-  const isBaking = data?.node.bakerId !== undefined;
   return (
     <>
       <Header>
@@ -273,11 +287,24 @@ function BakersInfo(props: InfoProps) {
               <Table.HeaderCell>ID</Table.HeaderCell>
               <Table.HeaderCell>Account</Table.HeaderCell>
               <Table.HeaderCell>Lottery Power</Table.HeaderCell>
+              <Table.HeaderCell>Expected blocks</Table.HeaderCell>
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {data?.birk.bakers.map((baker) => {
+            {data?.birk.bakers?.map((baker) => {
               const isNode = baker.bakerId === data.node.bakerId;
+
+              const bakerExpectedBlocks = mapValues(
+                data.expectedBlocks,
+                (blocks) => round(baker.bakerLotteryPower * blocks)
+              );
+              const [
+                bakerExpectedBlocksUnit,
+                bakerExpectedBlocksDisplay,
+              ] = Object.entries(bakerExpectedBlocks).find(
+                ([_, expected]) => expected > 0
+              ) ?? ["year", 0];
+
               return (
                 <Table.Row
                   key={baker.bakerId}
@@ -290,6 +317,10 @@ function BakersInfo(props: InfoProps) {
                   </Table.Cell>
                   <Table.Cell>
                     {formatPercentage(baker.bakerLotteryPower)}
+                  </Table.Cell>
+                  <Table.Cell>
+                    {bakerExpectedBlocksDisplay} block/
+                    {bakerExpectedBlocksUnit}
                   </Table.Cell>
                 </Table.Row>
               );
