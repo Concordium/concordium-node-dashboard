@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Container,
   Dimmer,
@@ -11,7 +11,6 @@ import {
   Ref,
   Statistic,
   Sticky,
-  StrictTableProps,
   Table,
 } from "semantic-ui-react";
 import { QueryObserverResult, useQuery } from "react-query";
@@ -23,7 +22,6 @@ import {
   formatPercentage,
   UnwrapPromiseRec,
   useDeviceScreen,
-  whenDefined,
 } from "../utils";
 import { mapValues, memoize, range, round } from "lodash";
 import { Account, KeyValueTable, TimeRelativeToNow } from "../shared";
@@ -192,7 +190,7 @@ function NodeInfo(props: InfoProps) {
 function ConsensusInfo(props: InfoProps) {
   const { data } = props.infoQuery;
 
-  let info = {
+  const info = {
     "Last block received":
       data === undefined ||
       data.consensus.blockLastReceivedTime === null ? undefined : (
@@ -303,7 +301,7 @@ function BakersInfo(props: InfoProps) {
                 bakerExpectedBlocksUnit,
                 bakerExpectedBlocksDisplay,
               ] = Object.entries(bakerExpectedBlocks).find(
-                ([_, expected]) => expected > 0
+                ([, expected]) => expected > 0
               ) ?? ["year", 0];
 
               return (

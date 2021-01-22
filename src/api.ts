@@ -270,7 +270,7 @@ export async function fetchPeerInfo() {
 export async function fetchConsensusInfo(): Promise<ConsensusInfo> {
   const res = await client.getConsensusStatus(empty, meta);
 
-  let json = JSON.parse(res.getValue());
+  const json = JSON.parse(res.getValue());
 
   // Parsing date fields into Date objects
   const dateFields = [
@@ -306,8 +306,7 @@ export async function fetchAccountInfo(
   request.setAddress(accountAddress);
 
   const res = await client.getAccountInfo(request, meta);
-  let json = JSON.parse(res.getValue());
-  console.log(json);
+  const json = JSON.parse(res.getValue());
 
   // Parse amount strings
   json.accountAmount = parseAmountString(json.accountAmount);
@@ -322,7 +321,7 @@ export async function fetchAccountInfo(
 
   // Parse date strings
   for (const cred of json.accountCredentials) {
-    let { policy } = cred.value.contents;
+    const { policy } = cred.value.contents;
     policy.createdAt = parsePolicyDate(policy.createdAt);
     policy.validTo = parsePolicyDate(policy.validTo);
   }
