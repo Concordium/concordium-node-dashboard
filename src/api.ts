@@ -1,5 +1,4 @@
-import { update } from "lodash";
-import { whenDefined, whenNotNull } from "./utils";
+import { whenDefined } from "./utils";
 import { P2PPromiseClient } from "../grpc-api-client/concordium_p2p_rpc_grpc_web_pb";
 import * as T from "../grpc-api-client/concordium_p2p_rpc_pb";
 
@@ -69,7 +68,19 @@ type AccountInfoBaker = {
   bakerElectionVerifyKey: string;
   bakerSignatureVerifyKey: string;
   stakedAmount: Amount;
+  pendingChange?: BakerChange;
 };
+
+type BakerChange =
+  | {
+      change: "ReduceStake";
+      newStake: Amount;
+      epoch: number;
+    }
+  | {
+      change: "RemoveBaker";
+      epoch: number;
+    };
 
 export type ContractAddress = {
   index: number;
@@ -78,27 +89,70 @@ export type ContractAddress = {
 
 export type Amount = BigInt;
 
+type ScheduleItem = {
+  timestamp: Date;
+  amount: Amount;
+  transactions: string[];
+};
+
 type AccountReleaseSchedule = {
-  schedule: unknown[]; // TODO: lookup the type
+  schedule: ScheduleItem[];
   total: Amount;
 };
 
 type AccountCredential = {
-  v: 0; // TODO: Figure out what this type is
-  value: {
-    type: string; // TODO: Lookup more precise type
-    contents: {
-      ipIdentity: number;
-      regId: string;
-      account: {};
-      policy: { createdAt: Date; validTo: Date; revealedAttributes: any };
-    };
+  v: 0;
+  value: InitialAccountCredential | NormalAccountCredential;
+};
+
+type InitialAccountCredential = {
+  type: "initial";
+  contents: {
+    account: { threshold: number; keys: string[] };
+    regId: string;
+    ipIdentity: number;
+    policy: Policy;
   };
 };
 
+type NormalAccountCredential = {
+  type: "normal";
+  contents: {
+    account: { threshold: number; keys: string[] };
+    regId: string;
+    ipIdentity: number;
+    revocationThreshold: number;
+    arData: Record<string, { encIdCredPubShare: string }>;
+    policy: Policy;
+  };
+};
+
+type Policy = {
+  createdAt: Date;
+  validTo: Date;
+  revealedAttributes: PolicyAttributes;
+};
+
+type PolicyAttributes = Partial<{
+  firstName: string;
+  lastName: string;
+  sex: string;
+  dob: string;
+  countryOfResidence: string;
+  nationality: string;
+  idDocType: string;
+  idDocNo: string;
+  idDocIssuer: string;
+  idDocIssuedAt: string;
+  idDocExpiresAt: string;
+  nationalIdNo: string;
+  taxIdNo: string;
+  UNKNOWN: string;
+}>;
+
 type AccountInfo = {
   accountAmount: Amount;
-  accountBaker: AccountInfoBaker | null; // TODO: Verify this is null and not undefined for node not baking
+  accountBaker?: AccountInfoBaker;
   accountCredentials: AccountCredential[];
   accountEncryptedAmount: EncryptedAmount;
   accountEncryptionKey: string;
