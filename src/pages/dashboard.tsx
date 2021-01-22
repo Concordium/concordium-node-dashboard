@@ -16,12 +16,16 @@ import {
 import { QueryObserverResult, useQuery } from "react-query";
 import * as API from "../api";
 import {
+  epochDate,
+  formatAmount,
+  formatBool,
   formatBytes,
   formatDate,
   formatDurationInMillis,
   formatPercentage,
   UnwrapPromiseRec,
   useDeviceScreen,
+  whenDefined,
 } from "../utils";
 import { mapValues, memoize, range, round } from "lodash";
 import { Account, KeyValueTable, TimeRelativeToNow } from "../shared";
@@ -48,7 +52,23 @@ async function fetchDashboadInfo() {
     year: msInAYear * blocksPrMilliseconds,
   };
 
-  return { node, peer, peersInfo, consensus, birk, expectedBlocks };
+  const bakerNode = birk.bakers.find((b) => b.bakerId === node.bakerId);
+
+  const bakerAccount = await whenDefined(
+    (b) => API.fetchAccountInfo(consensus.bestBlock, b.bakerAccount),
+    bakerNode
+  );
+
+  return {
+    node,
+    peer,
+    peersInfo,
+    consensus,
+    birk,
+    expectedBlocks,
+    bakerAccount,
+    bakerNode,
+  };
 }
 
 type DashboardInfo = UnwrapPromiseRec<ReturnType<typeof fetchDashboadInfo>>;
@@ -117,6 +137,7 @@ export function DashboardPage() {
             <Grid.Column computer={6} tablet={16}>
               <Sticky context={peersRef} active={isComputer}>
                 <NodeInfo infoQuery={infoQuery} />
+                <BakerInfo infoQuery={infoQuery} />
               </Sticky>
             </Grid.Column>
             <Ref innerRef={peersRef}>
@@ -183,6 +204,68 @@ function NodeInfo(props: InfoProps) {
         <Header.Subheader>Node specific information</Header.Subheader>
       </Header>
       <KeyValueTable color="blue" keyValues={info} />
+    </>
+  );
+}
+
+function BakerInfo(props: InfoProps) {
+  const { data } = props.infoQuery;
+
+  if (
+    data?.bakerAccount?.accountBaker === undefined ||
+    data.bakerNode?.bakerAccount === undefined
+  ) {
+    return null;
+  }
+
+  const { accountBaker } = data.bakerAccount;
+
+  const changeAtDate = whenDefined(
+    (epoch) => (
+      <TimeRelativeToNow
+        time={epochDate(
+          epoch,
+          data.consensus.epochDuration,
+          data.consensus.genesisTime
+        )}
+      />
+    ),
+    accountBaker.pendingChange?.epoch
+  );
+
+  const pendingChangeInfo =
+    whenDefined(
+      (pending) =>
+        pending.change === "RemoveBaker" ? (
+          <>Removing baker at {changeAtDate}</>
+        ) : (
+          <>
+            Reducing stake to {formatAmount(pending.newStake)} at {changeAtDate}
+          </>
+        ),
+      accountBaker.pendingChange
+    ) ?? "None";
+
+  const info = {
+    "Baker ID": accountBaker.bakerId,
+    Account: (
+      <Account
+        address={data.bakerNode.bakerAccount}
+        blockHash={data.consensus.bestBlock}
+      />
+    ),
+    "Staked amount": formatAmount(accountBaker.stakedAmount),
+    "Restake rewards": formatBool(accountBaker.restakeEarnings),
+    "Pending change": pendingChangeInfo,
+  };
+
+  return (
+    <>
+      <Header>
+        Baker
+        <Header.Subheader>Baker specific information</Header.Subheader>
+      </Header>
+      <KeyValueTable color="purple" keyValues={info} />
     </>
   );
 }

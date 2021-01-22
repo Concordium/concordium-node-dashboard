@@ -1,4 +1,4 @@
-import { formatDuration, intervalToDuration } from "date-fns";
+import { addMilliseconds, formatDuration, intervalToDuration } from "date-fns";
 import { round } from "lodash";
 import { useState, useEffect } from "react";
 import { Amount } from "./api";
@@ -98,10 +98,22 @@ export function formatAmount(amount: Amount) {
   return `${formatIntAsDecimal(amount, 6)} GTU`;
 }
 
+export function formatBool(bool: boolean) {
+  return bool ? "Yes" : "No";
+}
+
 export function whenDefined<A, B>(fn: (a: A) => B, a: A | undefined) {
   return a === undefined ? undefined : fn(a);
 }
 
 export function whenNotNull<A, B>(fn: (a: A) => B, a: A | null) {
   return a === null ? null : fn(a);
+}
+
+export function epochDate(
+  epochIndex: number,
+  epochDurationMillis: number,
+  genesisTime: Date
+) {
+  return addMilliseconds(genesisTime, epochIndex * epochDurationMillis);
 }
