@@ -27,7 +27,7 @@ const breakpoints = {
  * Hook for getting the size category of the current screen size.
  * Is determined only on the window width.
  */
-export function useDeviceScreen(offset: number = 0) {
+export function useDeviceScreen(offset = 0) {
   const width = useWindowWidth();
   return width < breakpoints.mobile + offset
     ? "mobile"

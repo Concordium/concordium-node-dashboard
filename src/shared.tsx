@@ -32,10 +32,6 @@ export function Account(props: AccountProps) {
     { enabled: open }
   );
 
-  const info = {
-    Balance: whenDefined(formatAmount, query.data?.accountAmount),
-  };
-
   return (
     <Modal
       onClose={() => setOpen(false)}
