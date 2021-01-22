@@ -7,3 +7,12 @@ services:
     volumes:
       - ./envoy.yaml:/etc/envoy/envoy.yaml
     command: /usr/local/bin/envoy -c /etc/envoy/envoy.yaml
+  build-grpc:
+    build:
+      context: ./grpc-web-generator
+    image: grpc-web-generator
+    volumes:
+      - ./deps/grpc-api:/deps/grpc-api:ro
+      - ./build_grpc-web-client.sh:/build_grpc-web-client.sh:ro
+      - ./grpc-api-client:/grpc-api-client
+    command: bash /build_grpc-web-client.sh

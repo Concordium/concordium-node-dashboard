@@ -15,6 +15,12 @@ Install dependencies using the following from the project root:
 npm install
 ```
 
+### Build the GRPC TypeScript client
+
+Either you install the dependencies manually or you can use a docker image.
+
+#### Manual install
+
 Install the protoc tool for generating protobuf files:
 
 - MacOS: brew install protobuf
@@ -22,7 +28,6 @@ Install the protoc tool for generating protobuf files:
 
 Install the code generator plugin for GRPC-web to PATH, see [instructions on GRPC-web](https://github.com/grpc/grpc-web#code-generator-plugin).
 
-### Build the GRPC TypeScript client
 
 Fetch the GRPC proto files for the Concordium-node:
 
@@ -37,12 +42,20 @@ Build the GRPC-client for TypeScript:
 ```
 If this succeeds: a directory `grpc-api-client` should be in your project root.
 
+#### Docker image
+
+With docker and docker-compose installed run:
+
+```
+docker-compose up build-grpc
+```
+
 ## Development
 
 Since a browser cannot use the GRPC protocol directly, a proxy must be in front, start an envoy proxy which assumes the Node GRPC api is running on `localhost:10000`:
 
 ```
-docker-compose up
+docker-compose up grpc-proxy
 ```
 
 To watch files and automate the build run:
