@@ -2,9 +2,6 @@
 default:
   image: node:15.5.1
 
-variables:
-  GIT_SUBMODULE_STRATEGY: recursive
-
 cache:
   paths:
     - node_modules/
@@ -13,10 +10,26 @@ stages:
   - build
   - lint
 
+build-grpc-web-generator-image:
+  stage: build
+  when: manual
+  image: docker:19.03.12
+  cache: {}
+  services:
+    - docker:19.03.12-dind
+  variables:
+    IMAGE_TAG: $CI_REGISTRY_IMAGE
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build --tag $CI_REGISTRY_IMAGE:latest grpc-web-generator
+    - docker push $CI_REGISTRY_IMAGE:latest
+
 build-proto:
   stage: build
-  image: juanjodiaz/grpc-web-generator:1.2.0
+  image: $CI_REGISTRY_IMAGE:latest
   cache: {}
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
   script:
     - ./build_grpc-web-client.sh
   artifacts:
