@@ -13,26 +13,34 @@ import {
   Table,
 } from "semantic-ui-react";
 import * as API from "./api";
-import { formatAmount, formatDate, whenDefined } from "~utils";
+import {
+  epochDate,
+  formatAmount,
+  formatBool,
+  formatDate,
+  whenDefined,
+} from "~utils";
 
 type AccountProps = {
-  blockHash: string;
+  blockHash?: string;
   address: string;
+  consensus: API.ConsensusInfo;
 };
 
 /** Display account, when clicked shows the account info in modal */
 export function Account(props: AccountProps) {
+  const blockHash = props.blockHash ?? props.consensus.bestBlock;
   const [open, setOpen] = useState(false);
 
   const accountInfoQuery = useQuery(
-    ["AccountInfo", props.blockHash, props.address],
-    () => API.fetchAccountInfo(props.blockHash, props.address),
+    ["AccountInfo", blockHash, props.address],
+    () => API.fetchAccountInfo(blockHash, props.address),
     { enabled: open, keepPreviousData: true }
   );
 
   const identityProvidersQuery = useQuery(
     ["IdentityProviders"],
-    () => API.fetchIdentityProviders(props.blockHash),
+    () => API.fetchIdentityProviders(blockHash),
     { enabled: open, keepPreviousData: true, staleTime: Infinity }
   );
 
@@ -80,7 +88,7 @@ export function Account(props: AccountProps) {
       </Header>
       <Modal.Content>
         <Grid>
-          <Grid.Row>
+          <Grid.Row verticalAlign="middle">
             <Grid.Column width={8}>
               <Table unstackable definition>
                 <Table.Body>
@@ -97,19 +105,48 @@ export function Account(props: AccountProps) {
               </Table>
             </Grid.Column>
             <Grid.Column width={8}>
-              <Table unstackable definition>
-                <Table.Body>
-                  <Table.Row>
-                    <Table.Cell width={5}>Staked amount</Table.Cell>
-                    <Table.Cell>
-                      {whenDefined(
-                        formatAmount,
-                        accountInfoQuery.data?.accountBaker?.stakedAmount
+              {whenDefined((accountBaker) => {
+                const changeAtDate = whenDefined(
+                  (epoch) => (
+                    <TimeRelativeToNow
+                      time={epochDate(
+                        epoch,
+                        props.consensus.epochDuration,
+                        props.consensus.genesisTime
                       )}
-                    </Table.Cell>
-                  </Table.Row>
-                </Table.Body>
-              </Table>
+                    />
+                  ),
+                  accountBaker.pendingChange?.epoch
+                );
+
+                const pendingChangeInfo =
+                  whenDefined(
+                    (pending) =>
+                      pending.change === "RemoveBaker" ? (
+                        <>Removing baker at {changeAtDate}</>
+                      ) : (
+                        <>
+                          Reducing stake to {formatAmount(pending.newStake)} at{" "}
+                          {changeAtDate}
+                        </>
+                      ),
+                    accountBaker?.pendingChange
+                  ) ?? "None";
+
+                const bakerInfo = {
+                  "Baker ID": accountInfoQuery.data?.accountBaker?.bakerId,
+                  "Staked amount": formatAmount(accountBaker.stakedAmount),
+                  "Restake rewards": formatBool(accountBaker?.restakeEarnings),
+                  "Pending change": pendingChangeInfo,
+                };
+
+                return (
+                  <>
+                    <Header>Baker information</Header>
+                    <KeyValueTable color="purple" keyValues={bakerInfo} />
+                  </>
+                );
+              }, accountInfoQuery.data?.accountBaker)}
             </Grid.Column>
           </Grid.Row>
         </Grid>

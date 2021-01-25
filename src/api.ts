@@ -14,7 +14,7 @@ const empty = new T.Empty();
 
 // Types
 
-type ConsensusInfo = {
+export type ConsensusInfo = {
   bestBlock: string;
   bestBlockHeight: number;
   blockArriveLatencyEMA: number;

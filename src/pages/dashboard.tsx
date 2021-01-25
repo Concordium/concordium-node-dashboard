@@ -256,7 +256,7 @@ function BakerInfo(props: InfoProps) {
     "Baker ID": accountBaker.bakerId,
     Account: (
       <Account
-        blockHash={data.consensus.bestBlock}
+        consensus={data.consensus}
         address={data.bakerNode.bakerAccount}
       />
     ),
@@ -423,10 +423,7 @@ function BakerRow(props: BakerRowProps) {
         {isNode ? " (This node)" : ""}
       </Table.Cell>
       <Table.Cell>
-        <Account
-          blockHash={data.consensus.bestBlock}
-          address={baker.bakerAccount}
-        />
+        <Account consensus={data.consensus} address={baker.bakerAccount} />
       </Table.Cell>
       <Table.Cell>{formatPercentage(baker.bakerLotteryPower)}</Table.Cell>
       <Table.Cell>
