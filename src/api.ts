@@ -161,6 +161,24 @@ type AccountInfo = {
   accountReleaseSchedule: AccountReleaseSchedule;
 };
 
+type IpOrArDescription = {
+  url: string;
+  name: string;
+  description: string;
+};
+
+type IdentityProvider = {
+  ipIdentity: number;
+  ipCdiVerifyKey: string;
+  ipDescription: IpOrArDescription;
+  ipVerifyKey: string;
+};
+
+type AnonymityRevoker = {
+  arIdentity: number;
+  arPublicKey: string;
+  arDescription: IpOrArDescription;
+};
 // Helper functions
 
 function parseAmountString(amount: string): Amount {
@@ -325,5 +343,28 @@ export async function fetchAccountInfo(
     policy.createdAt = parsePolicyDate(policy.createdAt);
     policy.validTo = parsePolicyDate(policy.validTo);
   }
+
   return json;
+}
+
+export async function fetchIdentityProviders(
+  blockHash: string
+): Promise<Map<number, IdentityProvider>> {
+  const request = new T.BlockHash();
+  request.setBlockHash(blockHash);
+
+  const res = await client.getIdentityProviders(request, meta);
+  const json: IdentityProvider[] = JSON.parse(res.getValue());
+  const map = new Map(json.map((ip) => [ip.ipIdentity, ip]));
+  return map;
+}
+
+export async function fetchAnonymityRevokers(blockHash: string) {
+  const request = new T.BlockHash();
+  request.setBlockHash(blockHash);
+
+  const res = await client.getAnonymityRevokers(request, meta);
+  const json: AnonymityRevoker[] = JSON.parse(res.getValue());
+  const map = new Map(json.map((ar) => [ar.arIdentity, ar]));
+  return map;
 }
