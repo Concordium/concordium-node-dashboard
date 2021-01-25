@@ -28,17 +28,18 @@ import {
   whenDefined,
 } from "../utils";
 import { mapValues, memoize, range, round } from "lodash";
-import {
-  Account,
-  KeyValueTable,
-  TimeRelativeToNow,
-  useAccountModal,
-} from "../shared";
+import { Account, KeyValueTable, TimeRelativeToNow } from "../shared";
 
 const msInADay = 1000 * 60 * 60 * 24;
 const msInAWeek = msInADay * 7;
 const msInAMonth = msInADay * 30;
 const msInAYear = msInAMonth * 12;
+
+const memoizedFetchBirkParameters = memoize(API.fetchBirkParameters);
+const memoizedFetchAccountInfo = memoize(
+  API.fetchAccountInfo,
+  (blockHash, account) => blockHash + account
+);
 
 async function fetchDashboadInfo() {
   const [node, peer, peersInfo, consensus] = await Promise.all([
@@ -47,7 +48,7 @@ async function fetchDashboadInfo() {
     API.fetchPeersInfo(),
     API.fetchConsensusInfo(),
   ]);
-  const birk = await memoize(API.fetchBirkParameters)(consensus.bestBlock);
+  const birk = await memoizedFetchBirkParameters(consensus.bestBlock);
 
   const blocksPrMilliseconds = birk.electionDifficulty / consensus.slotDuration;
   const expectedBlocks = {
@@ -60,7 +61,7 @@ async function fetchDashboadInfo() {
   const bakerNode = birk.bakers.find((b) => b.bakerId === node.bakerId);
 
   const bakerAccount = await whenDefined(
-    (b) => API.fetchAccountInfo(consensus.bestBlock, b.bakerAccount),
+    (b) => memoizedFetchAccountInfo(consensus.bestBlock, b.bakerAccount),
     bakerNode
   );
 
@@ -216,8 +217,6 @@ function NodeInfo(props: InfoProps) {
 function BakerInfo(props: InfoProps) {
   const { data } = props.infoQuery;
 
-  const [accountModal, showAccountModal] = useAccountModal();
-
   if (
     data?.bakerAccount?.accountBaker === undefined ||
     data.bakerNode?.bakerAccount === undefined
@@ -226,7 +225,6 @@ function BakerInfo(props: InfoProps) {
   }
 
   const { accountBaker } = data.bakerAccount;
-  const { bakerAccount } = data.bakerNode;
 
   const changeAtDate = whenDefined(
     (epoch) => (
@@ -258,8 +256,8 @@ function BakerInfo(props: InfoProps) {
     "Baker ID": accountBaker.bakerId,
     Account: (
       <Account
+        blockHash={data.consensus.bestBlock}
         address={data.bakerNode.bakerAccount}
-        onClick={() => showAccountModal(data.consensus.bestBlock, bakerAccount)}
       />
     ),
     "Staked amount": formatAmount(accountBaker.stakedAmount),
@@ -269,7 +267,6 @@ function BakerInfo(props: InfoProps) {
 
   return (
     <>
-      {accountModal}
       <Header>
         Baker
         <Header.Subheader>Baker specific information</Header.Subheader>
@@ -363,11 +360,8 @@ function PeersInfo(props: InfoProps) {
 function BakersInfo(props: InfoProps) {
   const { data } = props.infoQuery;
 
-  const [accountModal, displayAccountModal] = useAccountModal();
-
   return (
     <>
-      {accountModal}
       <Header>
         Bakers
         <Label color="grey" size="mini" circular>
@@ -388,19 +382,7 @@ function BakersInfo(props: InfoProps) {
           <Table.Body>
             {data !== undefined
               ? data.birk.bakers?.map((baker) => (
-                  <Baker
-                    key={baker.bakerId}
-                    baker={baker}
-                    data={data}
-                    onDisplayAccount={() =>
-                      data === undefined
-                        ? undefined
-                        : displayAccountModal(
-                            data?.consensus.bestBlock,
-                            baker.bakerAccount
-                          )
-                    }
-                  />
+                  <BakerRow key={baker.bakerId} baker={baker} data={data} />
                 ))
               : range(8).map((i) => (
                   <Table.Row key={i}>
@@ -416,13 +398,12 @@ function BakersInfo(props: InfoProps) {
   );
 }
 
-type BakerProps = {
+type BakerRowProps = {
   baker: API.BirkParametersBaker;
   data: DashboardInfo;
-  onDisplayAccount: () => void;
 };
 
-function Baker(props: BakerProps) {
+function BakerRow(props: BakerRowProps) {
   const { data, baker } = props;
   const isNode = baker.bakerId === data.node.bakerId;
 
@@ -443,8 +424,8 @@ function Baker(props: BakerProps) {
       </Table.Cell>
       <Table.Cell>
         <Account
+          blockHash={data.consensus.bestBlock}
           address={baker.bakerAccount}
-          onClick={props.onDisplayAccount}
         />
       </Table.Cell>
       <Table.Cell>{formatPercentage(baker.bakerLotteryPower)}</Table.Cell>
