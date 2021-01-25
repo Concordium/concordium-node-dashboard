@@ -216,6 +216,8 @@ function NodeInfo(props: InfoProps) {
 function BakerInfo(props: InfoProps) {
   const { data } = props.infoQuery;
 
+  const [accountModal, showAccountModal] = useAccountModal();
+
   if (
     data?.bakerAccount?.accountBaker === undefined ||
     data.bakerNode?.bakerAccount === undefined
@@ -224,6 +226,7 @@ function BakerInfo(props: InfoProps) {
   }
 
   const { accountBaker } = data.bakerAccount;
+  const { bakerAccount } = data.bakerNode;
 
   const changeAtDate = whenDefined(
     (epoch) => (
@@ -256,7 +259,7 @@ function BakerInfo(props: InfoProps) {
     Account: (
       <Account
         address={data.bakerNode.bakerAccount}
-        blockHash={data.consensus.bestBlock}
+        onClick={() => showAccountModal(data.consensus.bestBlock, bakerAccount)}
       />
     ),
     "Staked amount": formatAmount(accountBaker.stakedAmount),
@@ -266,6 +269,7 @@ function BakerInfo(props: InfoProps) {
 
   return (
     <>
+      {accountModal}
       <Header>
         Baker
         <Header.Subheader>Baker specific information</Header.Subheader>
