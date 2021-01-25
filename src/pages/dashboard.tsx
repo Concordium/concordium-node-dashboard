@@ -28,7 +28,12 @@ import {
   whenDefined,
 } from "../utils";
 import { mapValues, memoize, range, round } from "lodash";
-import { Account, KeyValueTable, TimeRelativeToNow } from "../shared";
+import {
+  Account,
+  ClickToCopy,
+  KeyValueTable,
+  TimeRelativeToNow,
+} from "../shared";
 
 const msInADay = 1000 * 60 * 60 * 24;
 const msInAWeek = msInADay * 7;
@@ -186,10 +191,12 @@ function NodeInfo(props: InfoProps) {
   const { data } = props.infoQuery;
 
   const info = {
-    ID: data?.node.id,
+    ID: whenDefined((id) => <ClickToCopy copied={id} />, data?.node.id),
     Version: data?.peer.version,
     Uptime:
-      data !== undefined ? formatDurationInMillis(data.peer.uptime) : undefined,
+      data !== undefined
+        ? formatDurationInMillis(data.peer.uptime, { hideSeconds: true })
+        : undefined,
     Localtime:
       data !== undefined ? formatDate(data?.node.localTime) : undefined,
     "Average sent":
@@ -334,7 +341,14 @@ function PeersInfo(props: InfoProps) {
           <Table.Body>
             {data?.peersInfo.peers.map((peer) => (
               <Table.Row key={peer.id}>
-                <Table.Cell>{peer.id}</Table.Cell>
+                <Table.Cell>
+                  {whenDefined(
+                    (id) => (
+                      <ClickToCopy copied={id} display={id.slice(0, 8)} />
+                    ),
+                    peer.id
+                  )}
+                </Table.Cell>
                 <Table.Cell>{peer.address}</Table.Cell>
                 <Table.Cell>{peer.stats?.latency}ms</Table.Cell>
                 <Table.Cell>{peer.status}</Table.Cell>
