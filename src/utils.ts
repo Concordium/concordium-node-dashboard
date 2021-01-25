@@ -95,7 +95,7 @@ export function formatBytes(numberOfBytes: number) {
 }
 
 export function formatAmount(amount: Amount) {
-  return `${formatIntAsDecimal(amount, 6)} GTU`;
+  return `${formatIntAsDecimal(amount, 6)} Ǥ`;
 }
 
 export function formatBool(bool: boolean) {
