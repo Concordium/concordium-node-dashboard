@@ -9,7 +9,9 @@ import {
 import { DashboardPage } from "./pages/dashboard";
 import { ControlsPage } from "./pages/controls";
 import { BlockExplorerPage } from "./pages/block-explorer";
-import logo from "~/assets/concordium-logo-no-text-dark.svg";
+import logoNoTextDark from "~/assets/concordium-logo-no-text-dark.svg";
+import logoNoTextLight from "~/assets/concordium-logo-no-text-light.svg";
+import logoWithText from "~/assets/concordium-text.svg";
 import { useDeviceScreen } from "./utils";
 import { QueryClient, QueryClientProvider } from "react-query";
 
@@ -23,8 +25,10 @@ export function App() {
   );
 }
 
+const sidebarWidthPx = 150;
+
 function Navigation() {
-  const device = useDeviceScreen(150);
+  const device = useDeviceScreen(sidebarWidthPx);
   const allowHidingMenu = device !== "computer";
   const [menuActivated, setMenuActivated] = useState(false);
   const menuVisible = !allowHidingMenu || menuActivated;
@@ -37,12 +41,15 @@ function Navigation() {
           icon="labeled"
           vertical
           width="thin"
-          animation={allowHidingMenu ? "overlay" : "push"}
+          animation="overlay"
           visible={menuVisible}
           onHide={() => setMenuActivated(false)}
         >
           <Menu.Item>
-            <img src={logo} style={{ width: "5em", margin: "auto" }} />
+            <img
+              src={logoNoTextDark}
+              style={{ width: "5em", margin: "auto" }}
+            />
           </Menu.Item>
 
           <Menu.Item as={NavLink} to="/" exact>
@@ -61,11 +68,38 @@ function Navigation() {
           </Menu.Item>
         </Sidebar>
         <Sidebar.Pusher dimmed={dimmed}>
-          <div style={{ overflowY: "auto", height: "100vh" }}>
+          <div
+            style={{
+              overflowY: "auto",
+              height: "100vh",
+              marginLeft: allowHidingMenu ? undefined : sidebarWidthPx + "px",
+            }}
+          >
             {allowHidingMenu ? (
-              <Menu>
+              <Menu inverted fluid attached="bottom">
                 <Menu.Item onClick={() => setMenuActivated(!menuActivated)}>
                   <Icon name="bars" />
+                </Menu.Item>
+                <Menu.Item style={{ flex: 1, justifyContent: "center" }}>
+                  <div>
+                    <img
+                      src={logoNoTextLight}
+                      style={{
+                        height: "1em",
+                        marginRight: "0.5em",
+                        width: "auto",
+                        color: "white",
+                        fill: "white",
+                      }}
+                    />
+                    <img
+                      src={logoWithText}
+                      style={{
+                        height: "1em",
+                        width: "auto",
+                      }}
+                    />
+                  </div>
                 </Menu.Item>
               </Menu>
             ) : null}
