@@ -43,7 +43,7 @@ type ConsensusInfo = {
   transactionsPerBlockEMSD: number;
 };
 
-type BirkParametersBaker = {
+export type BirkParametersBaker = {
   bakerAccount: string;
   bakerId: number;
   bakerLotteryPower: number;

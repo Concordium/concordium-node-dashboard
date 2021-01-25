@@ -373,43 +373,13 @@ function BakersInfo(props: InfoProps) {
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {data?.birk.bakers?.map((baker) => {
-              const isNode = baker.bakerId === data.node.bakerId;
-
-              const bakerExpectedBlocks = mapValues(
-                data.expectedBlocks,
-                (blocks) => round(baker.bakerLotteryPower * blocks)
-              );
-              const [
-                bakerExpectedBlocksUnit,
-                bakerExpectedBlocksDisplay,
-              ] = Object.entries(bakerExpectedBlocks).find(
-                ([, expected]) => expected > 0
-              ) ?? ["year", 0];
-
-              return (
-                <Table.Row
-                  key={baker.bakerId}
-                  positive={isNode}
-                  className={isNode ? "baking-node-row" : ""}
-                >
-                  <Table.Cell>{baker.bakerId}</Table.Cell>
-                  <Table.Cell>
-                    <Account
-                      blockHash={data.consensus.bestBlock}
-                      address={baker.bakerAccount}
-                    />
-                  </Table.Cell>
-                  <Table.Cell>
-                    {formatPercentage(baker.bakerLotteryPower)}
-                  </Table.Cell>
-                  <Table.Cell>
-                    {bakerExpectedBlocksDisplay} block/
-                    {bakerExpectedBlocksUnit}
-                  </Table.Cell>
-                </Table.Row>
-              );
-            })}
+            {data?.birk.bakers?.map((baker) => (
+              <Baker
+                key={baker.bakerId}
+                baker={baker}
+                infoQuery={props.infoQuery}
+              />
+            ))}
             {data === undefined
               ? range(8).map((i) => (
                   <Table.Row key={i}>
@@ -423,5 +393,47 @@ function BakersInfo(props: InfoProps) {
         </Table>
       </div>
     </>
+  );
+}
+
+type BakerProps = {
+  baker: API.BirkParametersBaker;
+} & InfoProps;
+
+function Baker(props: BakerProps) {
+  const { baker } = props;
+  const { data } = props.infoQuery;
+  if (data === undefined) {
+    return null;
+  }
+  const isNode = baker.bakerId === data.node.bakerId;
+
+  // Calculate the expected blocks for different durations (rounded)
+  const bakerExpectedBlocks = mapValues(data.expectedBlocks, (blocks) =>
+    round(baker.bakerLotteryPower * blocks)
+  );
+  // Take the first non-zero blocks
+  const [bakerExpectedBlocksUnit, bakerExpectedBlocksDisplay] = Object.entries(
+    bakerExpectedBlocks
+  ).find(([, expected]) => expected > 0) ?? ["year", 0];
+
+  return (
+    <Table.Row positive={isNode} className={isNode ? "baking-node-row" : ""}>
+      <Table.Cell>
+        {baker.bakerId}
+        {isNode ? " (This node)" : ""}
+      </Table.Cell>
+      <Table.Cell>
+        <Account
+          blockHash={data.consensus.bestBlock}
+          address={baker.bakerAccount}
+        />
+      </Table.Cell>
+      <Table.Cell>{formatPercentage(baker.bakerLotteryPower)}</Table.Cell>
+      <Table.Cell>
+        {bakerExpectedBlocksDisplay} block/
+        {bakerExpectedBlocksUnit}
+      </Table.Cell>
+    </Table.Row>
   );
 }
