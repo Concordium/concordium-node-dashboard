@@ -1,4 +1,5 @@
 import { formatDistanceStrict } from "date-fns";
+import { capitalize } from "lodash";
 import React, { useCallback, useEffect, useState } from "react";
 import { useQuery } from "react-query";
 import {
@@ -14,42 +15,43 @@ import {
 import { fetchAccountInfo } from "~api";
 import { formatAmount, formatDate, whenDefined } from "~utils";
 
-type AccountProps = {
-  blockHash: string;
-  address: string;
-};
+/** Hook for opening a modal containing account information on a given block.
+ * The reason for this being a hook and not just a plain JSX element, is to be
+ * able to reuse the modal view across multible account, resulting in improved
+ * performance.
+ */
+export function useAccountModal() {
+  const [address, setAddress] = useState<string | undefined>(undefined);
+  const [blockHash, setBlockHash] = useState<string | undefined>(undefined);
+  const open = address !== undefined && blockHash !== undefined;
 
-/** Display an account address with click to copy */
-export function Account(props: AccountProps) {
-  const onCopy = useCallback(
-    () => navigator.clipboard.writeText(props.address),
-    [props.address]
-  );
-  const [open, setOpen] = useState(false);
   const query = useQuery(
-    ["AccountInfo", props.blockHash, props.address],
-    () => fetchAccountInfo(props.blockHash, props.address),
+    ["AccountInfo", blockHash, address],
+    () =>
+      address === undefined || blockHash === undefined
+        ? undefined
+        : fetchAccountInfo(blockHash, address),
     { enabled: open }
   );
 
-  return (
-    <Modal
-      onClose={() => setOpen(false)}
-      onOpen={() => setOpen(true)}
-      open={open}
-      trigger={
-        <Label basic onClick={() => setOpen(true)} as="a">
-          <Icon name="user" />
-          <span className="monospace">{props.address.slice(0, 8)}</span>
-        </Label>
-      }
-    >
+  const onCopy = useCallback(
+    () => navigator.clipboard.writeText(address ?? ""),
+    [address]
+  );
+
+  const showModal = (blockHash: string, address: string) => {
+    setBlockHash(blockHash);
+    setAddress(address);
+  };
+
+  const modalView = (
+    <Modal onClose={() => setAddress(undefined)} open={open}>
       <Header>
         <Icon name="user" />
         <Header.Content>
           Account information{" "}
           <Button icon onClick={onCopy} basic labelPosition="right" compact>
-            <span className="monospace">{props.address.slice(0, 8)}</span>
+            <span className="monospace">{address?.slice(0, 8)}</span>
             <Icon name="clipboard" />
           </Button>
         </Header.Content>
@@ -75,7 +77,7 @@ export function Account(props: AccountProps) {
         <Table>
           <Table.Header>
             <Table.Row>
-              <Table.HeaderCell>V</Table.HeaderCell>
+              <Table.HeaderCell>Version</Table.HeaderCell>
               <Table.HeaderCell>Type</Table.HeaderCell>
               <Table.HeaderCell>Identity Provider ID</Table.HeaderCell>
               <Table.HeaderCell>Created at</Table.HeaderCell>
@@ -86,7 +88,7 @@ export function Account(props: AccountProps) {
             {query.data?.accountCredentials.map((cred) => (
               <Table.Row key={cred.value.contents.regId}>
                 <Table.Cell>{cred.v}</Table.Cell>
-                <Table.Cell>{cred.value.type}</Table.Cell>
+                <Table.Cell>{capitalize(cred.value.type)}</Table.Cell>
                 <Table.Cell>{cred.value.contents.ipIdentity}</Table.Cell>
                 <Table.Cell>
                   {formatDate(cred.value.contents.policy.createdAt, {
@@ -104,9 +106,26 @@ export function Account(props: AccountProps) {
         </Table>
       </Modal.Content>
       <Modal.Actions>
-        <Button onClick={() => setOpen(false)}>Close</Button>
+        <Button onClick={() => setAddress(undefined)}>Close</Button>
       </Modal.Actions>
     </Modal>
+  );
+
+  return [modalView, showModal] as const;
+}
+
+type AccountProps = {
+  address: string;
+  onClick?: () => void;
+};
+
+/** Display an account address */
+export function Account(props: AccountProps) {
+  return (
+    <Label basic onClick={props.onClick} as="a">
+      <Icon name="user" />
+      <span className="monospace">{props.address.slice(0, 8)}</span>
+    </Label>
   );
 }
 

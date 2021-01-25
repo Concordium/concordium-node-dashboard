@@ -28,7 +28,12 @@ import {
   whenDefined,
 } from "../utils";
 import { mapValues, memoize, range, round } from "lodash";
-import { Account, KeyValueTable, TimeRelativeToNow } from "../shared";
+import {
+  Account,
+  KeyValueTable,
+  TimeRelativeToNow,
+  useAccountModal,
+} from "../shared";
 
 const msInADay = 1000 * 60 * 60 * 24;
 const msInAWeek = msInADay * 7;
@@ -353,8 +358,12 @@ function PeersInfo(props: InfoProps) {
 
 function BakersInfo(props: InfoProps) {
   const { data } = props.infoQuery;
+
+  const [accountModal, displayAccountModal] = useAccountModal();
+
   return (
     <>
+      {accountModal}
       <Header>
         Bakers
         <Label color="grey" size="mini" circular>
@@ -373,22 +382,29 @@ function BakersInfo(props: InfoProps) {
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {data?.birk.bakers?.map((baker) => (
-              <Baker
-                key={baker.bakerId}
-                baker={baker}
-                infoQuery={props.infoQuery}
-              />
-            ))}
-            {data === undefined
-              ? range(8).map((i) => (
+            {data !== undefined
+              ? data.birk.bakers?.map((baker) => (
+                  <Baker
+                    key={baker.bakerId}
+                    baker={baker}
+                    data={data}
+                    onDisplayAccount={() =>
+                      data === undefined
+                        ? undefined
+                        : displayAccountModal(
+                            data?.consensus.bestBlock,
+                            baker.bakerAccount
+                          )
+                    }
+                  />
+                ))
+              : range(8).map((i) => (
                   <Table.Row key={i}>
                     <Table.Cell>-</Table.Cell>
                     <Table.Cell>-</Table.Cell>
                     <Table.Cell>-</Table.Cell>
                   </Table.Row>
-                ))
-              : null}
+                ))}
           </Table.Body>
         </Table>
       </div>
@@ -398,14 +414,12 @@ function BakersInfo(props: InfoProps) {
 
 type BakerProps = {
   baker: API.BirkParametersBaker;
-} & InfoProps;
+  data: DashboardInfo;
+  onDisplayAccount: () => void;
+};
 
 function Baker(props: BakerProps) {
-  const { baker } = props;
-  const { data } = props.infoQuery;
-  if (data === undefined) {
-    return null;
-  }
+  const { data, baker } = props;
   const isNode = baker.bakerId === data.node.bakerId;
 
   // Calculate the expected blocks for different durations (rounded)
@@ -425,8 +439,8 @@ function Baker(props: BakerProps) {
       </Table.Cell>
       <Table.Cell>
         <Account
-          blockHash={data.consensus.bestBlock}
           address={baker.bakerAccount}
+          onClick={props.onDisplayAccount}
         />
       </Table.Cell>
       <Table.Cell>{formatPercentage(baker.bakerLotteryPower)}</Table.Cell>
