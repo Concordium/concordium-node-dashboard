@@ -22,26 +22,29 @@ import {
   whenDefined,
 } from "~utils";
 
-type AccountProps = {
-  blockHash?: string;
-  address: string;
-  consensus: API.ConsensusInfo;
-};
+/** Hook for displaying the account info modal, the reason for this being a hook
+ * is to be able to share the modal view across account labels */
+export function useAccountInfoModal(consensus: API.ConsensusInfo | undefined) {
+  const [address, setAddress] = useState<string | undefined>(undefined);
+  const [blockHash, setBlockHash] = useState<string | undefined>(undefined);
 
-/** Display account, when clicked shows the account info in modal */
-export function Account(props: AccountProps) {
-  const blockHash = props.blockHash ?? props.consensus.bestBlock;
-  const [open, setOpen] = useState(false);
+  const open = address !== undefined && blockHash !== undefined;
+
+  const onClose = () => setAddress(undefined);
+  const onOpen = (blockHash: string, address: string) => {
+    setAddress(address);
+    setBlockHash(blockHash);
+  };
 
   const accountInfoQuery = useQuery(
-    ["AccountInfo", blockHash, props.address],
-    () => API.fetchAccountInfo(blockHash, props.address),
+    ["AccountInfo", blockHash, address],
+    () => whenDefined(API.fetchAccountInfo, blockHash, address),
     { enabled: open, keepPreviousData: true }
   );
 
   const identityProvidersQuery = useQuery(
     ["IdentityProviders"],
-    () => API.fetchIdentityProviders(blockHash),
+    () => whenDefined(API.fetchIdentityProviders, blockHash),
     { enabled: open, keepPreviousData: true, staleTime: Infinity }
   );
 
@@ -60,28 +63,12 @@ export function Account(props: AccountProps) {
     [identityProvidersQuery]
   );
 
-  return (
-    <Modal
-      onClose={() => setOpen(false)}
-      onOpen={() => setOpen(true)}
-      open={open}
-      trigger={
-        <Popup
-          trigger={
-            <Label basic as="a" onClick={() => setOpen(true)}>
-              <Icon name="user" />
-              <span className="monospace">{props.address.slice(0, 8)}</span>
-            </Label>
-          }
-        >
-          Look up account
-        </Popup>
-      }
-    >
+  const modalView = (
+    <Modal onClose={onClose} open={open}>
       <Header>
         <Icon name="user" />
         <Header.Content>
-          Account information <ClickToCopy copied={props.address} />
+          Account information <ClickToCopy copied={address || ""} />
         </Header.Content>
       </Header>
       <Modal.Content>
@@ -114,26 +101,27 @@ export function Account(props: AccountProps) {
             <Grid.Column width={8}>
               {whenDefined((accountBaker) => {
                 const changeAtDate = whenDefined(
-                  (epoch) => (
+                  (epoch, consensus) => (
                     <TimeRelativeToNow
                       time={epochDate(
                         epoch,
-                        props.consensus.epochDuration,
-                        props.consensus.genesisTime
+                        consensus.epochDuration,
+                        consensus.genesisTime
                       )}
                     />
                   ),
-                  accountBaker.pendingChange?.epoch
+                  accountBaker.pendingChange?.epoch,
+                  consensus
                 );
 
                 const pendingChangeInfo =
                   whenDefined(
                     (pending) =>
                       pending.change === "RemoveBaker" ? (
-                        <>Removing baker at {changeAtDate}</>
+                        <>Removing baker {changeAtDate}</>
                       ) : (
                         <>
-                          Reducing stake to {formatAmount(pending.newStake)} at{" "}
+                          Reducing stake to {formatAmount(pending.newStake)}{" "}
                           {changeAtDate}
                         </>
                       ),
@@ -270,9 +258,34 @@ export function Account(props: AccountProps) {
         </Grid>
       </Modal.Content>
       <Modal.Actions>
-        <Button onClick={() => setOpen(false)}>Close</Button>
+        <Button onClick={onClose}>Close</Button>
       </Modal.Actions>
     </Modal>
+  );
+
+  return [modalView, onOpen] as const;
+}
+
+type AccountProps = {
+  blockHash?: string;
+  address: string;
+  consensus: API.ConsensusInfo;
+  onClick?: () => void;
+};
+
+/** Display account label */
+export function Account(props: AccountProps) {
+  return (
+    <Popup
+      trigger={
+        <Label basic as="a" onClick={props.onClick}>
+          <Icon name="user" />
+          <span className="monospace">{props.address.slice(0, 8)}</span>
+        </Label>
+      }
+    >
+      Look up account
+    </Popup>
   );
 }
 
@@ -339,5 +352,26 @@ export function ClickToCopy(props: ClickToCopyProps) {
     >
       Copied: {props.copied}
     </Popup>
+  );
+}
+
+export function CTable(props: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      {...props}
+      className={(props.className ?? "") + " concordium table purple"}
+    />
+  );
+}
+
+export function CRow(props: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div {...props} className={(props.className ?? "") + " concordium row"} />
+  );
+}
+
+export function CFlex(props: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div {...props} className={(props.className ?? "") + " concordium flex"} />
   );
 }

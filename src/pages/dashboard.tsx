@@ -29,9 +29,15 @@ import { mapValues, memoize, range, round } from "lodash";
 import {
   Account,
   ClickToCopy,
+  CFlex,
   KeyValueTable,
+  CRow,
   TimeRelativeToNow,
+  CTable as CTable,
+  useAccountInfoModal,
 } from "../shared";
+import { FixedSizeList as List } from "react-window";
+import AutoSizer from "react-virtualized-auto-sizer";
 
 const msInADay = 1000 * 60 * 60 * 24;
 const msInAWeek = msInADay * 7;
@@ -370,8 +376,13 @@ function PeersInfo(props: InfoProps) {
 function BakersInfo(props: InfoProps) {
   const { data } = props.infoQuery;
 
+  const [accountInfoModal, lookupAccount] = useAccountInfoModal(
+    data?.consensus
+  );
+
   return (
     <>
+      {accountInfoModal}
       <Header>
         Bakers
         <Label color="grey" size="mini" circular>
@@ -379,31 +390,56 @@ function BakersInfo(props: InfoProps) {
         </Label>
         <Header.Subheader>The bakers in the best block</Header.Subheader>
       </Header>
-      <div className="table-wrapper">
-        <Table unstackable color="purple" compact>
-          <Table.Header>
-            <Table.Row>
-              <Table.HeaderCell>ID</Table.HeaderCell>
-              <Table.HeaderCell>Account</Table.HeaderCell>
-              <Table.HeaderCell>Lottery Power</Table.HeaderCell>
-              <Table.HeaderCell>Expected blocks</Table.HeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {data !== undefined
-              ? data.birk.bakers?.map((baker) => (
-                  <BakerRow key={baker.bakerId} baker={baker} data={data} />
-                ))
-              : range(8).map((i) => (
-                  <Table.Row key={i}>
-                    <Table.Cell>-</Table.Cell>
-                    <Table.Cell>-</Table.Cell>
-                    <Table.Cell>-</Table.Cell>
-                  </Table.Row>
-                ))}
-          </Table.Body>
-        </Table>
-      </div>
+      <CTable>
+        <CRow className="head">
+          <CFlex>ID</CFlex>
+          <CFlex>Account</CFlex>
+          <CFlex>Lottery Power</CFlex>
+          <CFlex>Expected blocks</CFlex>
+        </CRow>
+        <div style={{ height: 500 }}>
+          {data !== undefined ? (
+            <AutoSizer>
+              {({ width, height }) => (
+                <List
+                  height={height}
+                  itemCount={data.birk.bakers.length}
+                  itemSize={50}
+                  width={width}
+                  itemKey={(index) => data.birk.bakers[index].bakerId}
+                >
+                  {({ style, index }) => {
+                    const baker = data.birk.bakers[index];
+                    return (
+                      <BakerRow
+                        key={baker.bakerId}
+                        baker={baker}
+                        data={data}
+                        style={style}
+                        onLookupAccount={() =>
+                          lookupAccount(
+                            data.consensus.bestBlock,
+                            baker.bakerAccount
+                          )
+                        }
+                      />
+                    );
+                  }}
+                </List>
+              )}
+            </AutoSizer>
+          ) : (
+            range(8).map((i) => (
+              <CRow className="thead" key={i}>
+                <CFlex>-</CFlex>
+                <CFlex>-</CFlex>
+                <CFlex>-</CFlex>
+                <CFlex>-</CFlex>
+              </CRow>
+            ))
+          )}
+        </div>
+      </CTable>
     </>
   );
 }
@@ -411,6 +447,8 @@ function BakersInfo(props: InfoProps) {
 type BakerRowProps = {
   baker: API.BirkParametersBaker;
   data: DashboardInfo;
+  onLookupAccount: () => void;
+  style: any;
 };
 
 function BakerRow(props: BakerRowProps) {
@@ -427,19 +465,27 @@ function BakerRow(props: BakerRowProps) {
   ).find(([, expected]) => expected > 0) ?? ["year", 0];
 
   return (
-    <Table.Row positive={isNode} className={isNode ? "baking-node-row" : ""}>
-      <Table.Cell>
+    <CRow
+      // positive={isNode}
+      className={isNode ? "baking-node-row" : ""}
+      style={props.style}
+    >
+      <CFlex>
         {baker.bakerId}
         {isNode ? " (This node)" : ""}
-      </Table.Cell>
-      <Table.Cell>
-        <Account consensus={data.consensus} address={baker.bakerAccount} />
-      </Table.Cell>
-      <Table.Cell>{formatPercentage(baker.bakerLotteryPower)}</Table.Cell>
-      <Table.Cell>
+      </CFlex>
+      <CFlex>
+        <Account
+          consensus={data.consensus}
+          address={baker.bakerAccount}
+          onClick={props.onLookupAccount}
+        />
+      </CFlex>
+      <CFlex>{formatPercentage(baker.bakerLotteryPower)}</CFlex>
+      <CFlex>
         {bakerExpectedBlocksDisplay} block/
         {bakerExpectedBlocksUnit}
-      </Table.Cell>
-    </Table.Row>
+      </CFlex>
+    </CRow>
   );
 }

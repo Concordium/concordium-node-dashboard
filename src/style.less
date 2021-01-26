@@ -40,10 +40,58 @@
   overflow-y: auto;
   resize: vertical;
   height: 600px;
+
+  tbody {
+    display: block;
+    // height: 150px;
+    // overflow: auto;
+  }
+
+  thead,
+  tbody tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
 }
 
 @media @mobile {
   .table-wrapper {
     resize: none;
+  }
+}
+
+.concordium {
+  &.row {
+    display: flex;
+    flex-direction: row;
+  }
+  &.flex {
+    flex: 1;
+  }
+
+  &.table {
+    &.purple {
+      border-top: 0.2em solid #b413ec;
+    }
+    background: #fff;
+    margin: 1em 0;
+    border: 1px solid rgba(34, 36, 38, 0.15);
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    border-radius: 0.28571429rem;
+    color: rgba(0, 0, 0, 0.87);
+
+    .row {
+      border-right: 1px solid rgba(34, 36, 38, 0.15);
+      border-bottom: 1px solid rgba(34, 36, 38, 0.15);
+      padding: 1em;
+
+      &.head {
+        background-color: #f9fafb;
+        font-weight: 700;
+        border-right: 0;
+      }
+    }
   }
 }
