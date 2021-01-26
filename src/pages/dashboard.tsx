@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   Container,
   Dimmer,
@@ -8,9 +8,7 @@ import {
   Label,
   Loader,
   Message,
-  Ref,
   Statistic,
-  Sticky,
   Table,
 } from "semantic-ui-react";
 import { QueryObserverResult, useQuery } from "react-query";
@@ -25,7 +23,6 @@ import {
   formatDurationInMillis,
   formatPercentage,
   UnwrapPromiseRec,
-  useDeviceScreen,
   whenDefined,
 } from "../utils";
 import { mapValues, memoize, range, round } from "lodash";
@@ -108,11 +105,6 @@ export function DashboardPage() {
     }
   );
 
-  const deviceScreen = useDeviceScreen();
-  const peersRef = useRef<HTMLElement>(null);
-  const bakersRef = useRef<HTMLElement>(null);
-  const isComputer = deviceScreen === "computer";
-
   return (
     <Container className="page-content">
       <Header dividing textAlign="center">
@@ -160,16 +152,12 @@ export function DashboardPage() {
         <Grid stackable doubling>
           <Grid.Row>
             <Grid.Column computer={6} tablet={16}>
-              <Sticky context={peersRef} active={isComputer}>
-                <NodeInfo infoQuery={infoQuery} />
-                <BakerInfo infoQuery={infoQuery} />
-              </Sticky>
+              <NodeInfo infoQuery={infoQuery} />
+              <BakerInfo infoQuery={infoQuery} />
             </Grid.Column>
-            <Ref innerRef={peersRef}>
-              <Grid.Column computer={10} tablet={16}>
-                <PeersInfo infoQuery={infoQuery} />
-              </Grid.Column>
-            </Ref>
+            <Grid.Column computer={10} tablet={16}>
+              <PeersInfo infoQuery={infoQuery} />
+            </Grid.Column>
           </Grid.Row>
         </Grid>
         <Divider horizontal>
@@ -178,15 +166,11 @@ export function DashboardPage() {
         <Grid doubling stackable>
           <Grid.Row reversed="computer">
             <Grid.Column computer={6} tablet={16}>
-              <Sticky context={bakersRef} active={isComputer}>
-                <ConsensusInfo infoQuery={infoQuery} />
-              </Sticky>
+              <ConsensusInfo infoQuery={infoQuery} />
             </Grid.Column>
-            <Ref innerRef={bakersRef}>
-              <Grid.Column computer={10} tablet={16}>
-                <BakersInfo infoQuery={infoQuery} />
-              </Grid.Column>
-            </Ref>
+            <Grid.Column computer={10} tablet={16}>
+              <BakersInfo infoQuery={infoQuery} />
+            </Grid.Column>
           </Grid.Row>
         </Grid>
         <Dimmer active={infoQuery.isLoading || infoQuery.isError} inverted>
