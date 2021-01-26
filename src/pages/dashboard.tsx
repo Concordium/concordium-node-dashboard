@@ -161,7 +161,7 @@ export function DashboardPage() {
         <Divider horizontal>
           <Header>Consensus</Header>
         </Divider>
-        <Grid doubling>
+        <Grid doubling stackable>
           <Grid.Row reversed="computer">
             <Grid.Column computer={6} tablet={16}>
               <Sticky context={bakersRef} active={isComputer}>
@@ -328,12 +328,11 @@ function PeersInfo(props: InfoProps) {
         </Label>
         <Header.Subheader>Externally connected peers</Header.Subheader>
       </Header>
-      <div style={{ overflowX: "auto" }}>
+      <div className="table-wrapper">
         <Table unstackable color="red">
           <Table.Header>
             <Table.Row>
               <Table.HeaderCell>ID</Table.HeaderCell>
-              <Table.HeaderCell>Address</Table.HeaderCell>
               <Table.HeaderCell>Latency</Table.HeaderCell>
               <Table.HeaderCell>Status</Table.HeaderCell>
             </Table.Row>
@@ -344,12 +343,11 @@ function PeersInfo(props: InfoProps) {
                 <Table.Cell>
                   {whenDefined(
                     (id) => (
-                      <ClickToCopy copied={id} display={id.slice(0, 8)} />
+                      <ClickToCopy copied={id} />
                     ),
                     peer.id
                   )}
                 </Table.Cell>
-                <Table.Cell>{peer.address}</Table.Cell>
                 <Table.Cell>{peer.stats?.latency}ms</Table.Cell>
                 <Table.Cell>{peer.status}</Table.Cell>
               </Table.Row>
@@ -383,7 +381,7 @@ function BakersInfo(props: InfoProps) {
         </Label>
         <Header.Subheader>The bakers in the best block</Header.Subheader>
       </Header>
-      <div style={{ overflowX: "auto" }}>
+      <div className="table-wrapper">
         <Table unstackable color="purple" compact>
           <Table.Header>
             <Table.Row>
