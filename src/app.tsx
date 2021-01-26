@@ -25,10 +25,8 @@ export function App() {
   );
 }
 
-const sidebarWidthPx = 150;
-
 function Navigation() {
-  const device = useDeviceScreen(sidebarWidthPx);
+  const device = useDeviceScreen(290);
   const allowHidingMenu = device !== "computer";
   const [menuActivated, setMenuActivated] = useState(false);
   const menuVisible = !allowHidingMenu || menuActivated;
@@ -72,7 +70,7 @@ function Navigation() {
             style={{
               overflowY: "auto",
               height: "100vh",
-              marginLeft: allowHidingMenu ? undefined : sidebarWidthPx + "px",
+              marginLeft: allowHidingMenu ? undefined : 150 + "px",
             }}
           >
             {allowHidingMenu ? (
