@@ -102,30 +102,55 @@ function formatIntAsDecimal(n: number | BigInt, numberOfdecimals: number) {
   return `${int}.${decimals}`;
 }
 
+/** Display number representing bytes as kB/s */
 export function formatBytes(numberOfBytes: number) {
   return `${formatIntAsDecimal(numberOfBytes, 3)} kB/s`;
 }
 
+/** Display an amount of microGTU in GTU with unit */
 export function formatAmount(amount: Amount) {
   return `${formatIntAsDecimal(amount, 6)} Ǥ`;
 }
 
+/** Display a boolean as Yes or No */
 export function formatBool(bool: boolean) {
   return bool ? "Yes" : "No";
 }
 
-export function whenDefined<A, B>(fn: (a: A) => B, a: A | undefined) {
-  return a === undefined ? undefined : fn(a);
+/** Run function on value if value is not undefined, otherwise return undefined.
+ */
+export function whenDefined<A1, A2, B>(
+  fn: (a1: A1, a2: A2) => B,
+  a1: A1 | undefined,
+  a2: A2 | undefined
+): B | undefined;
+export function whenDefined<A, B>(
+  fn: (a: A) => B,
+  a: A | undefined
+): B | undefined;
+export function whenDefined<A extends any[], B>(
+  fn: (...args: A) => B,
+  ...args: A
+): B | undefined {
+  return args.some((a) => a === undefined) ? undefined : fn(...args);
 }
 
-export function whenNotNull<A, B>(fn: (a: A) => B, a: A | null) {
-  return a === null ? null : fn(a);
-}
-
+/** Calculates the start date of an epoch index */
 export function epochDate(
   epochIndex: number,
   epochDurationMillis: number,
   genesisTime: Date
-) {
+): Date {
   return addMilliseconds(genesisTime, epochIndex * epochDurationMillis);
+}
+
+/** Takes an object of promises and awaits all the keys in the object */
+export async function awaitObject<A extends Record<string, any>>(
+  promises: A
+): Promise<{ [K in keyof A]: UnwrapPromiseRec<A[K]> }> {
+  const res: any = {};
+  for (const [key, promise] of Object.entries(promises)) {
+    res[key] = await promise;
+  }
+  return res;
 }

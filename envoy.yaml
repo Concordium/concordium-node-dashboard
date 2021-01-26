@@ -44,5 +44,5 @@ static_resources:
     lb_policy: round_robin
     hosts:
     - socket_address:
-        address: 127.0.0.1 # Address of the concordium node
+        address: 127.0.0.1 # 172.31.37.0 # Address of the concordium node
         port_value: 10000  # GRPC port of the concordium node

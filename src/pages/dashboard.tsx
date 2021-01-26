@@ -16,6 +16,7 @@ import {
 import { QueryObserverResult, useQuery } from "react-query";
 import * as API from "../api";
 import {
+  awaitObject,
   epochDate,
   formatAmount,
   formatBool,
@@ -46,51 +47,64 @@ const memoizedFetchAccountInfo = memoize(
   (blockHash, account) => blockHash + account
 );
 
-async function fetchDashboadInfo() {
-  const [node, peer, peersInfo, consensus] = await Promise.all([
-    API.fetchNodeInfo(),
-    API.fetchPeerInfo(),
-    API.fetchPeersInfo(),
-    API.fetchConsensusInfo(),
-  ]);
-  const birk = await memoizedFetchBirkParameters(consensus.bestBlock);
-
-  const blocksPrMilliseconds = birk.electionDifficulty / consensus.slotDuration;
-  const expectedBlocks = {
-    day: msInADay * blocksPrMilliseconds,
-    week: msInAWeek * blocksPrMilliseconds,
-    month: msInAMonth * blocksPrMilliseconds,
-    year: msInAYear * blocksPrMilliseconds,
-  };
-
-  const bakerNode = birk.bakers.find((b) => b.bakerId === node.bakerId);
-
-  const bakerAccount = await whenDefined(
-    (b) => memoizedFetchAccountInfo(consensus.bestBlock, b.bakerAccount),
-    bakerNode
+function fetchDashboardInfo() {
+  const peerPromise = API.fetchPeerInfo();
+  const nodePromise = API.fetchNodeInfo();
+  const peersInfoPromise = API.fetchPeersInfo();
+  const consensusPromise = API.fetchConsensusInfo();
+  const birkPromise = consensusPromise.then((c) =>
+    memoizedFetchBirkParameters(c.bestBlock)
   );
+  const expectedBlocksPromise = (async () => {
+    const birk = await birkPromise;
+    const consensus = await consensusPromise;
+    const blocksPrMilliseconds =
+      birk.electionDifficulty / consensus.slotDuration;
+    return {
+      day: msInADay * blocksPrMilliseconds,
+      week: msInAWeek * blocksPrMilliseconds,
+      month: msInAMonth * blocksPrMilliseconds,
+      year: msInAYear * blocksPrMilliseconds,
+    };
+  })();
 
-  return {
-    node,
-    peer,
-    peersInfo,
-    consensus,
-    birk,
-    expectedBlocks,
-    bakerAccount,
-    bakerNode,
-  };
+  const bakerNodePromise = (async () => {
+    const birk = await birkPromise;
+    const node = await nodePromise;
+    return birk.bakers.find((b) => b.bakerId === node.bakerId);
+  })();
+
+  const bakerAccountPromise = (async () => {
+    const bakerNode = await bakerNodePromise;
+    const consensus = await consensusPromise;
+    return whenDefined(
+      (b) => memoizedFetchAccountInfo(consensus.bestBlock, b.bakerAccount),
+      bakerNode
+    );
+  })();
+
+  return awaitObject({
+    node: nodePromise,
+    peer: peerPromise,
+    peersInfo: peersInfoPromise,
+    consensus: consensusPromise,
+    birk: birkPromise,
+    expectedBlocks: expectedBlocksPromise,
+    bakerAccount: bakerAccountPromise,
+    bakerNode: bakerNodePromise,
+  });
 }
 
-type DashboardInfo = UnwrapPromiseRec<ReturnType<typeof fetchDashboadInfo>>;
+type DashboardInfo = UnwrapPromiseRec<ReturnType<typeof fetchDashboardInfo>>;
 
 export function DashboardPage() {
   const [refetchInterval, setRefetchInterval] = useState(2000);
   const infoQuery = useQuery<DashboardInfo, Error>(
     "dashboardInfo",
-    fetchDashboadInfo,
+    fetchDashboardInfo,
     {
       refetchInterval,
+      keepPreviousData: true,
     }
   );
 
