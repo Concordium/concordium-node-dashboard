@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Container,
   Dimmer,
@@ -25,11 +25,11 @@ import {
   UnwrapPromiseRec,
   whenDefined,
 } from "../utils";
-import { mapValues, memoize, range, round } from "lodash";
+import { memoize, orderBy, range, round } from "lodash";
 import {
   Account,
   ClickToCopy,
-  CFlex,
+  CCol,
   KeyValueTable,
   CRow,
   TimeRelativeToNow,
@@ -380,6 +380,15 @@ function BakersInfo(props: InfoProps) {
     data?.consensus
   );
 
+  const sortedBakers = useMemo(
+    () =>
+      whenDefined(
+        (bakers) => orderBy(bakers, (b) => b.bakerLotteryPower, "desc"),
+        data?.birk.bakers
+      ),
+    [data?.birk.bakers]
+  );
+
   return (
     <>
       {accountInfoModal}
@@ -392,24 +401,24 @@ function BakersInfo(props: InfoProps) {
       </Header>
       <CTable>
         <CRow className="head">
-          <CFlex>ID</CFlex>
-          <CFlex>Account</CFlex>
-          <CFlex>Lottery Power</CFlex>
-          <CFlex>Expected blocks</CFlex>
+          <CCol style={{ flex: 0.3 }}>ID</CCol>
+          <CCol>Account</CCol>
+          <CCol>Lottery Power</CCol>
+          <CCol>Expected blocks</CCol>
         </CRow>
         <div style={{ height: 500 }}>
-          {data !== undefined ? (
+          {data !== undefined && sortedBakers !== undefined ? (
             <AutoSizer>
               {({ width, height }) => (
                 <List
                   height={height}
                   itemCount={data.birk.bakers.length}
-                  itemSize={50}
+                  itemSize={55}
                   width={width}
-                  itemKey={(index) => data.birk.bakers[index].bakerId}
+                  itemKey={(index) => sortedBakers[index].bakerId}
                 >
                   {({ style, index }) => {
-                    const baker = data.birk.bakers[index];
+                    const baker = sortedBakers[index];
                     return (
                       <BakerRow
                         key={baker.bakerId}
@@ -430,11 +439,15 @@ function BakersInfo(props: InfoProps) {
             </AutoSizer>
           ) : (
             range(8).map((i) => (
-              <CRow className="thead" key={i}>
-                <CFlex>-</CFlex>
-                <CFlex>-</CFlex>
-                <CFlex>-</CFlex>
-                <CFlex>-</CFlex>
+              <CRow
+                className="thead"
+                key={i}
+                style={{ justifyContent: "center" }}
+              >
+                <CCol style={{ flex: 0.3 }}>-</CCol>
+                <CCol>-</CCol>
+                <CCol>-</CCol>
+                <CCol>-</CCol>
               </CRow>
             ))
           )}
@@ -455,14 +468,17 @@ function BakerRow(props: BakerRowProps) {
   const { data, baker } = props;
   const isNode = baker.bakerId === data.node.bakerId;
 
-  // Calculate the expected blocks for different durations (rounded)
-  const bakerExpectedBlocks = mapValues(data.expectedBlocks, (blocks) =>
-    round(baker.bakerLotteryPower * blocks)
-  );
   // Take the first non-zero blocks
-  const [bakerExpectedBlocksUnit, bakerExpectedBlocksDisplay] = Object.entries(
-    bakerExpectedBlocks
-  ).find(([, expected]) => expected > 0) ?? ["year", 0];
+  const expectedBlocks = useMemo(() => {
+    const bakerBlocks = Object.entries(data.expectedBlocks).map(
+      ([unit, blocks]) =>
+        [unit, round(baker.bakerLotteryPower * blocks)] as const
+    );
+    const [unit, blocks] =
+      bakerBlocks.find(([, expected]) => expected >= 1) ??
+      bakerBlocks[bakerBlocks.length - 1];
+    return `${blocks} block/${unit}`;
+  }, [baker.bakerLotteryPower, data.expectedBlocks]);
 
   return (
     <CRow
@@ -470,22 +486,19 @@ function BakerRow(props: BakerRowProps) {
       className={isNode ? "baking-node-row" : ""}
       style={props.style}
     >
-      <CFlex>
+      <CCol style={{ flex: 0.3 }}>
         {baker.bakerId}
         {isNode ? " (This node)" : ""}
-      </CFlex>
-      <CFlex>
+      </CCol>
+      <CCol>
         <Account
           consensus={data.consensus}
           address={baker.bakerAccount}
           onClick={props.onLookupAccount}
         />
-      </CFlex>
-      <CFlex>{formatPercentage(baker.bakerLotteryPower)}</CFlex>
-      <CFlex>
-        {bakerExpectedBlocksDisplay} block/
-        {bakerExpectedBlocksUnit}
-      </CFlex>
+      </CCol>
+      <CCol>{formatPercentage(baker.bakerLotteryPower)}</CCol>
+      <CCol>{expectedBlocks}</CCol>
     </CRow>
   );
 }

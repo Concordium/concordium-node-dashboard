@@ -377,9 +377,9 @@ export function CRow(props: React.HTMLAttributes<HTMLDivElement>) {
   );
 }
 
-export function CFlex(props: React.HTMLAttributes<HTMLDivElement>) {
+export function CCol(props: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div {...props} className={(props.className ?? "") + " concordium flex"} />
+    <div {...props} className={(props.className ?? "") + " concordium col"} />
   );
 }
 
