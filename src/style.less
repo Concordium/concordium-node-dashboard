@@ -75,12 +75,11 @@
     .tr {
       border-bottom: 1px solid @table-border-color;
     }
-    .tbody .tr {
+    &.scrollbar .tbody .tr {
       border-right: 1px solid @table-border-color;
-
-      &:last-child {
-        border-bottom: none;
-      }
+    }
+    .tbody .tr:last-child {
+      border-bottom: none;
     }
   }
 }

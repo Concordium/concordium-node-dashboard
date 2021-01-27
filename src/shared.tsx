@@ -395,6 +395,8 @@ export function FixedTable<A extends Record<string, any>>(
     useFlexLayout
   );
 
+  const showScrollbar = props.bodyMaxheight < rows.length * props.itemHeight;
+
   const RenderRow = React.useCallback(
     ({ index, style }) => {
       const row = rows[index];
@@ -416,7 +418,11 @@ export function FixedTable<A extends Record<string, any>>(
   return (
     <div
       {...getTableProps()}
-      className={"concordium table " + (props.color ?? "")}
+      className={
+        "concordium table " +
+        (props.color ?? "") +
+        (showScrollbar ? " scrollbar" : "")
+      }
     >
       <div className="thead">
         {headerGroups.map((headerGroup) => (
