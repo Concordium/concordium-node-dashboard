@@ -101,15 +101,14 @@ export function useAccountInfoModal(consensus: API.ConsensusInfo | undefined) {
             <Grid.Column width={8}>
               {whenDefined((accountBaker) => {
                 const changeAtDate = whenDefined(
-                  (epoch, consensus) => (
-                    <TimeRelativeToNow
-                      time={epochDate(
+                  (epoch, consensus) =>
+                    formatDate(
+                      epochDate(
                         epoch,
                         consensus.epochDuration,
                         consensus.genesisTime
-                      )}
-                    />
-                  ),
+                      )
+                    ),
                   accountBaker.pendingChange?.epoch,
                   consensus
                 );
@@ -118,11 +117,14 @@ export function useAccountInfoModal(consensus: API.ConsensusInfo | undefined) {
                   whenDefined(
                     (pending) =>
                       pending.change === "RemoveBaker" ? (
-                        <>Removing baker {changeAtDate}</>
+                        <>
+                          Removing baker at{" "}
+                          <Unbreakable>{changeAtDate}</Unbreakable>
+                        </>
                       ) : (
                         <>
-                          Reducing stake to {formatAmount(pending.newStake)}{" "}
-                          {changeAtDate}
+                          Reducing stake to {formatAmount(pending.newStake)} at{" "}
+                          <Unbreakable>{changeAtDate}</Unbreakable>
                         </>
                       ),
                     accountBaker?.pendingChange
@@ -373,5 +375,11 @@ export function CRow(props: React.HTMLAttributes<HTMLDivElement>) {
 export function CFlex(props: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div {...props} className={(props.className ?? "") + " concordium flex"} />
+  );
+}
+
+export function Unbreakable(props: React.HTMLAttributes<HTMLSpanElement>) {
+  return (
+    <div {...props} className={(props.className ?? "") + " unbreakable"} />
   );
 }

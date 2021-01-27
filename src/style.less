@@ -28,6 +28,10 @@
   font-family: "Courier New", Courier, monospace;
 }
 
+.unbreakable {
+  white-space: nowrap;
+}
+
 .baking-node-row {
   font-weight: bold;
 }
@@ -38,27 +42,7 @@
 
 .table-wrapper {
   overflow-y: auto;
-  resize: vertical;
-  height: 600px;
-
-  tbody {
-    display: block;
-    // height: 150px;
-    // overflow: auto;
-  }
-
-  thead,
-  tbody tr {
-    display: table;
-    width: 100%;
-    table-layout: fixed;
-  }
-}
-
-@media @mobile {
-  .table-wrapper {
-    resize: none;
-  }
+  // height: 600px;
 }
 
 .concordium {
