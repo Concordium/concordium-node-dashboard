@@ -346,10 +346,15 @@ export function ClickToCopy(props: ClickToCopyProps) {
     <Popup
       on="click"
       trigger={
-        <Button icon onClick={onCopy} basic labelPosition="right" compact>
-          <span className="monospace">{props.display ?? props.copied}</span>
-          <Icon name="clipboard" />
-        </Button>
+        <Button
+          onClick={onCopy}
+          basic
+          icon="clipboard"
+          content={
+            <span className="monospace">{props.display ?? props.copied}</span>
+          }
+          compact
+        />
       }
     >
       Copied: {props.copied}
