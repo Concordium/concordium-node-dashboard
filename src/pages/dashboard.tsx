@@ -9,6 +9,7 @@ import {
   Label,
   Loader,
   Message,
+  Popup,
   Statistic,
 } from "semantic-ui-react";
 import { QueryObserverResult, useQuery } from "react-query";
@@ -353,12 +354,18 @@ function PeersInfo(props: InfoProps) {
         id: "unban",
         accessor: function Unban(peer: Peer) {
           return (
-            <Button
-              icon="ban"
-              basic
-              color="red"
-              onClick={() => whenDefined((id) => API.banNode(id), peer.id)}
-            />
+            <Popup
+              trigger={
+                <Button
+                  icon="ban"
+                  basic
+                  color="red"
+                  onClick={() => whenDefined((id) => API.banNode(id), peer.id)}
+                />
+              }
+            >
+              Ban node
+            </Popup>
           );
         },
       },
@@ -384,11 +391,19 @@ function PeersInfo(props: InfoProps) {
         id: "unban",
         accessor: function Unban(peer: BannedPeer) {
           return (
-            <Button
-              icon="handshake outline"
-              basic
-              onClick={() => whenDefined((id) => API.unbanNode(id), peer.id)}
-            />
+            <Popup
+              trigger={
+                <Button
+                  icon="handshake outline"
+                  basic
+                  onClick={() =>
+                    whenDefined((id) => API.unbanNode(id), peer.id)
+                  }
+                />
+              }
+            >
+              Unban node
+            </Popup>
           );
         },
       },
