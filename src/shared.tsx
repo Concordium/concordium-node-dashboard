@@ -20,7 +20,9 @@ import {
   formatBool,
   formatDate,
   whenDefined,
-} from "~utils";
+} from "./utils";
+import { FixedSizeList } from "react-window";
+import { useTable, TableOptions, useFlexLayout } from "react-table";
 
 /** Hook for displaying the account info modal, the reason for this being a hook
  * is to be able to share the modal view across account labels */
@@ -362,29 +364,86 @@ export function ClickToCopy(props: ClickToCopyProps) {
   );
 }
 
-export function CTable(props: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      {...props}
-      className={(props.className ?? "") + " concordium table purple"}
-    />
-  );
-}
-
-export function CRow(props: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div {...props} className={(props.className ?? "") + " concordium row"} />
-  );
-}
-
-export function CCol(props: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div {...props} className={(props.className ?? "") + " concordium col"} />
-  );
-}
-
+/** A span of text which will not wrap around */
 export function Unbreakable(props: React.HTMLAttributes<HTMLSpanElement>) {
   return (
     <div {...props} className={(props.className ?? "") + " unbreakable"} />
+  );
+}
+
+type FixedTableProps<A extends Record<string, any>> = {
+  columns: TableOptions<A>["columns"];
+  data: TableOptions<A>["data"];
+  itemHeight: number;
+  bodyMaxheight: number;
+  color?: "red" | "purple";
+};
+
+/** Table where items are fixed height, which is used to ensure proper
+ * performance for large tables. */
+export function FixedTable<A extends Record<string, any>>(
+  props: FixedTableProps<A>
+) {
+  const {
+    getTableProps,
+    getTableBodyProps,
+    headerGroups,
+    rows,
+    prepareRow,
+  } = useTable(
+    { columns: props.columns, data: props.data, defaultColumn: { width: 1 } },
+    useFlexLayout
+  );
+
+  const RenderRow = React.useCallback(
+    ({ index, style }) => {
+      const row = rows[index];
+      prepareRow(row);
+      return (
+        <div {...row.getRowProps({ style })} className="tr">
+          {row.cells.map((cell) => (
+            <div {...cell.getCellProps()} key={cell.column.id} className="td">
+              {cell.render("Cell")}
+            </div>
+          ))}
+        </div>
+      );
+    },
+    [prepareRow, rows]
+  );
+
+  // Render the UI for your table
+  return (
+    <div
+      {...getTableProps()}
+      className={"concordium table " + (props.color ?? "")}
+    >
+      <div className="thead">
+        {headerGroups.map((headerGroup) => (
+          <div
+            {...headerGroup.getHeaderGroupProps()}
+            key={headerGroup.id}
+            className="tr"
+          >
+            {headerGroup.headers.map((column) => (
+              <div {...column.getHeaderProps()} key={column.id} className="th">
+                {column.render("Header")}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <div {...getTableBodyProps()} className="tbody">
+        <FixedSizeList
+          height={Math.min(props.bodyMaxheight, rows.length * props.itemHeight)}
+          itemCount={rows.length}
+          itemSize={props.itemHeight}
+          width="100%"
+        >
+          {RenderRow}
+        </FixedSizeList>
+      </div>
+    </div>
   );
 }

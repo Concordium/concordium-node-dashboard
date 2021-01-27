@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
+  Button,
   Container,
   Dimmer,
   Divider,
@@ -9,7 +10,6 @@ import {
   Loader,
   Message,
   Statistic,
-  Table,
 } from "semantic-ui-react";
 import { QueryObserverResult, useQuery } from "react-query";
 import * as API from "../api";
@@ -25,19 +25,16 @@ import {
   UnwrapPromiseRec,
   whenDefined,
 } from "../utils";
-import { memoize, orderBy, range, round } from "lodash";
+import { memoize, orderBy, round } from "lodash";
 import {
   Account,
   ClickToCopy,
-  CCol,
   KeyValueTable,
-  CRow,
   TimeRelativeToNow,
-  CTable as CTable,
   useAccountInfoModal,
+  FixedTable,
 } from "../shared";
-import { FixedSizeList as List } from "react-window";
-import AutoSizer from "react-virtualized-auto-sizer";
+import { Column } from "react-table";
 
 const msInADay = 1000 * 60 * 60 * 24;
 const msInAWeek = msInADay * 7;
@@ -323,52 +320,114 @@ function ConsensusInfo(props: InfoProps) {
 function PeersInfo(props: InfoProps) {
   const { data } = props.infoQuery;
 
+  type Peer = API.FetchPeersInfo["peers"][number];
+  type BannedPeer = API.FetchPeersInfo["banned"][number];
+
+  const peerColumns: Column<Peer>[] = useMemo(
+    () => [
+      {
+        Header: "ID",
+        width: 5,
+        accessor: (peer: Peer) =>
+          whenDefined((id) => <ClickToCopy copied={id} />, peer.id),
+      },
+      {
+        Header: "Address",
+        width: 4,
+        accessor: (peer: Peer) =>
+          peer.ip === "*" ? "Any" : `${peer.ip}:${peer.port}`,
+      },
+      {
+        Header: "Latency",
+        width: 2,
+
+        accessor: (peer: Peer) =>
+          whenDefined((l) => l + "ms", peer.stats?.latency),
+      },
+      {
+        Header: "Status",
+        width: 2,
+        accessor: (peer: Peer) => peer.status,
+      },
+      {
+        id: "unban",
+        accessor: function Unban(peer: Peer) {
+          return (
+            <Button
+              icon="ban"
+              basic
+              color="red"
+              onClick={() => whenDefined((id) => API.banNode(id), peer.id)}
+            />
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  const bannedPeerColumns: Column<BannedPeer>[] = useMemo(
+    () => [
+      {
+        Header: "ID",
+        width: 8,
+        accessor: (peer: BannedPeer) =>
+          whenDefined((id) => <ClickToCopy copied={id} />, peer.id),
+      },
+      {
+        Header: "Address",
+        width: 8,
+        accessor: (peer: BannedPeer) =>
+          peer.ip === "*" ? "Any" : `${peer.ip}:${peer.port}`,
+      },
+      {
+        id: "unban",
+        accessor: function Unban(peer: BannedPeer) {
+          return (
+            <Button
+              icon="handshake outline"
+              basic
+              onClick={() => whenDefined((id) => API.unbanNode(id), peer.id)}
+            />
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  const peers = data?.peersInfo.peers ?? [];
+  const banned = data?.peersInfo.banned ?? [];
+
   return (
     <>
       <Header>
         Peers
         <Label color="grey" size="mini" circular>
-          {data?.peersInfo.peers.length}
+          {peers.length}
         </Label>
         <Header.Subheader>Externally connected peers</Header.Subheader>
       </Header>
-      <div className="table-wrapper">
-        <Table unstackable color="red">
-          <Table.Header>
-            <Table.Row>
-              <Table.HeaderCell>ID</Table.HeaderCell>
-              <Table.HeaderCell>Latency</Table.HeaderCell>
-              <Table.HeaderCell>Status</Table.HeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {data?.peersInfo.peers.map((peer) => (
-              <Table.Row key={peer.id}>
-                <Table.Cell>
-                  {whenDefined(
-                    (id) => (
-                      <ClickToCopy copied={id} />
-                    ),
-                    peer.id
-                  )}
-                </Table.Cell>
-                <Table.Cell>{peer.stats?.latency}ms</Table.Cell>
-                <Table.Cell>{peer.status}</Table.Cell>
-              </Table.Row>
-            ))}
-            {data === undefined
-              ? range(8).map((i) => (
-                  <Table.Row key={i}>
-                    <Table.Cell>-</Table.Cell>
-                    <Table.Cell>-</Table.Cell>
-                    <Table.Cell>-</Table.Cell>
-                    <Table.Cell>-</Table.Cell>
-                  </Table.Row>
-                ))
-              : null}
-          </Table.Body>
-        </Table>
-      </div>
+      <FixedTable
+        itemHeight={55}
+        bodyMaxheight={500}
+        color="red"
+        columns={peerColumns}
+        data={peers}
+      />
+      <Header>
+        Banned peers{" "}
+        <Label color="grey" size="mini" circular>
+          {banned.length}
+        </Label>
+      </Header>
+      <FixedTable
+        itemHeight={55}
+        bodyMaxheight={500}
+        color="red"
+        columns={bannedPeerColumns}
+        data={banned}
+      />
     </>
   );
 }
@@ -385,8 +444,58 @@ function BakersInfo(props: InfoProps) {
       whenDefined(
         (bakers) => orderBy(bakers, (b) => b.bakerLotteryPower, "desc"),
         data?.birk.bakers
-      ),
+      ) ?? [],
     [data?.birk.bakers]
+  );
+
+  const columns: Column<API.BirkParametersBaker>[] = useMemo(
+    () => [
+      {
+        Header: "ID",
+        accessor: (baker: API.BirkParametersBaker) =>
+          baker.bakerId +
+          (baker.bakerId === data?.node.bakerId ? "(This node)" : ""),
+        width: 0.5,
+      },
+      {
+        Header: "Account",
+        accessor: function TableAccount(baker: API.BirkParametersBaker) {
+          return whenDefined(
+            (data) => (
+              <Account
+                consensus={data.consensus}
+                address={baker.bakerAccount}
+                onClick={() =>
+                  lookupAccount(data.consensus.bestBlock, baker.bakerAccount)
+                }
+              />
+            ),
+            data
+          );
+        },
+      },
+      {
+        Header: "Lottery Power",
+        accessor: (baker: API.BirkParametersBaker) =>
+          formatPercentage(baker.bakerLotteryPower),
+      },
+      {
+        Header: "Expected blocks",
+        accessor: (baker: API.BirkParametersBaker) => {
+          return whenDefined((data) => {
+            const bakerBlocks = Object.entries(data.expectedBlocks).map(
+              ([unit, blocks]) =>
+                [unit, round(baker.bakerLotteryPower * blocks)] as const
+            );
+            const [unit, blocks] =
+              bakerBlocks.find(([, expected]) => expected >= 1) ??
+              bakerBlocks[bakerBlocks.length - 1];
+            return `${blocks} block/${unit}`;
+          }, data);
+        },
+      },
+    ],
+    [data, lookupAccount]
   );
 
   return (
@@ -399,106 +508,13 @@ function BakersInfo(props: InfoProps) {
         </Label>
         <Header.Subheader>The bakers in the best block</Header.Subheader>
       </Header>
-      <CTable>
-        <CRow className="head">
-          <CCol style={{ flex: 0.3 }}>ID</CCol>
-          <CCol>Account</CCol>
-          <CCol>Lottery Power</CCol>
-          <CCol>Expected blocks</CCol>
-        </CRow>
-        <div style={{ height: 500 }}>
-          {data !== undefined && sortedBakers !== undefined ? (
-            <AutoSizer>
-              {({ width, height }) => (
-                <List
-                  height={height}
-                  itemCount={data.birk.bakers.length}
-                  itemSize={55}
-                  width={width}
-                  itemKey={(index) => sortedBakers[index].bakerId}
-                >
-                  {({ style, index }) => {
-                    const baker = sortedBakers[index];
-                    return (
-                      <BakerRow
-                        key={baker.bakerId}
-                        baker={baker}
-                        data={data}
-                        style={style}
-                        onLookupAccount={() =>
-                          lookupAccount(
-                            data.consensus.bestBlock,
-                            baker.bakerAccount
-                          )
-                        }
-                      />
-                    );
-                  }}
-                </List>
-              )}
-            </AutoSizer>
-          ) : (
-            range(8).map((i) => (
-              <CRow
-                className="thead"
-                key={i}
-                style={{ justifyContent: "center" }}
-              >
-                <CCol style={{ flex: 0.3 }}>-</CCol>
-                <CCol>-</CCol>
-                <CCol>-</CCol>
-                <CCol>-</CCol>
-              </CRow>
-            ))
-          )}
-        </div>
-      </CTable>
+      <FixedTable
+        itemHeight={55}
+        bodyMaxheight={500}
+        color="purple"
+        columns={columns}
+        data={sortedBakers}
+      />
     </>
-  );
-}
-
-type BakerRowProps = {
-  baker: API.BirkParametersBaker;
-  data: DashboardInfo;
-  onLookupAccount: () => void;
-  style: any;
-};
-
-function BakerRow(props: BakerRowProps) {
-  const { data, baker } = props;
-  const isNode = baker.bakerId === data.node.bakerId;
-
-  // Take the first non-zero blocks
-  const expectedBlocks = useMemo(() => {
-    const bakerBlocks = Object.entries(data.expectedBlocks).map(
-      ([unit, blocks]) =>
-        [unit, round(baker.bakerLotteryPower * blocks)] as const
-    );
-    const [unit, blocks] =
-      bakerBlocks.find(([, expected]) => expected >= 1) ??
-      bakerBlocks[bakerBlocks.length - 1];
-    return `${blocks} block/${unit}`;
-  }, [baker.bakerLotteryPower, data.expectedBlocks]);
-
-  return (
-    <CRow
-      // positive={isNode}
-      className={isNode ? "baking-node-row" : ""}
-      style={props.style}
-    >
-      <CCol style={{ flex: 0.3 }}>
-        {baker.bakerId}
-        {isNode ? " (This node)" : ""}
-      </CCol>
-      <CCol>
-        <Account
-          consensus={data.consensus}
-          address={baker.bakerAccount}
-          onClick={props.onLookupAccount}
-        />
-      </CCol>
-      <CCol>{formatPercentage(baker.bakerLotteryPower)}</CCol>
-      <CCol>{expectedBlocks}</CCol>
-    </CRow>
   );
 }

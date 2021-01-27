@@ -1,4 +1,4 @@
-import { whenDefined } from "./utils";
+import { UnwrapPromiseRec, whenDefined } from "./utils";
 import { P2PPromiseClient } from "../grpc-api-client/concordium_p2p_rpc_grpc_web_pb";
 import * as T from "../grpc-api-client/concordium_p2p_rpc_pb";
 
@@ -179,6 +179,11 @@ type AnonymityRevoker = {
   arPublicKey: string;
   arDescription: IpOrArDescription;
 };
+
+export type FetchPeersInfo = UnwrapPromiseRec<
+  ReturnType<typeof fetchPeersInfo>
+>;
+
 // Helper functions
 
 function parseAmountString(amount: string): Amount {
@@ -195,6 +200,13 @@ function parsePolicyDate(str: string): Date {
 
 function getGoogleStringValue(stringValue: any): string | undefined {
   return stringValue?.getValue();
+}
+
+function createGoogleValue(value: string) {
+  return {
+    toArray: () => [value],
+    getValue: () => value,
+  };
 }
 
 function getGoogleIntValue(intValue: any): number | undefined {
@@ -231,9 +243,10 @@ export async function fetchPeersInfo() {
   const peersRequest = new T.PeersRequest();
   peersRequest.setIncludeBootstrappers(false);
 
-  const [listRes, statsRes] = await Promise.all([
+  const [listRes, statsRes, bannedRes] = await Promise.all([
     client.peerList(peersRequest, meta),
     client.peerStats(peersRequest, meta),
+    client.getBannedPeers(empty, meta),
   ]);
 
   const peerStatsMap = new Map(
@@ -246,22 +259,37 @@ export async function fetchPeersInfo() {
       },
     ])
   );
-  const peers = listRes.getPeersList().map((p) => {
-    const id = getGoogleStringValue(p.getNodeId());
+
+  const peers = listRes.getPeersList().map((peer) => {
+    const id = getGoogleStringValue(peer.getNodeId());
     const stats = id !== undefined ? peerStatsMap.get(id) : undefined;
-    const ip = getGoogleStringValue(p.getIp());
-    const port = getGoogleIntValue(p.getPort());
+    const ip = getGoogleStringValue(peer.getIp());
+    const port = getGoogleIntValue(peer.getPort());
     return {
-      address: `${ip}:${port}`,
       id,
-      status: catchupStatusToString(p.getCatchupStatus()),
+      ip,
+      port,
+      status: catchupStatusToString(peer.getCatchupStatus()),
       stats,
     };
   });
+
+  const banned = bannedRes.getPeersList().map((peer) => {
+    const id = getGoogleStringValue(peer.getNodeId());
+    const ip = getGoogleStringValue(peer.getIp());
+    const port = getGoogleIntValue(peer.getPort());
+    return {
+      id,
+      ip,
+      port,
+    };
+  });
+
   return {
     avgBpsIn: statsRes.getAvgBpsIn(),
     avgBpsOut: statsRes.getAvgBpsOut(),
     peers,
+    banned,
   };
 }
 
@@ -367,4 +395,18 @@ export async function fetchAnonymityRevokers(blockHash: string) {
   const json: AnonymityRevoker[] = JSON.parse(res.getValue());
   const map = new Map(json.map((ar) => [ar.arIdentity, ar]));
   return map;
+}
+
+export async function banNode(nodeId: string) {
+  const node = new T.PeerElement();
+  node.setNodeId(createGoogleValue(nodeId));
+  const res = await client.banNode(node, meta);
+  return res.getValue();
+}
+
+export async function unbanNode(nodeId: string) {
+  const node = new T.PeerElement();
+  node.setNodeId(createGoogleValue(nodeId));
+  const res = await client.unbanNode(node, meta);
+  return res.getValue();
 }
