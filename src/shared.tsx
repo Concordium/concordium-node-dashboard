@@ -39,7 +39,7 @@ export function useAccountInfoModal(consensus: API.ConsensusInfo | undefined) {
   const accountInfoQuery = useQuery(
     ["AccountInfo", blockHash, address],
     () => whenDefined(API.fetchAccountInfo, blockHash, address),
-    { enabled: open, keepPreviousData: true }
+    { enabled: open, keepPreviousData: open }
   );
 
   const identityProvidersQuery = useQuery(
