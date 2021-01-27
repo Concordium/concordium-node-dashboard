@@ -26,7 +26,7 @@ import {
   UnwrapPromiseRec,
   whenDefined,
 } from "../utils";
-import { memoize, orderBy, round } from "lodash";
+import { isEmpty, memoize, orderBy, round } from "lodash";
 import {
   Account,
   ClickToCopy,
@@ -425,24 +425,28 @@ function PeersInfo(props: InfoProps) {
       </Header>
       <FixedTable
         itemHeight={55}
-        bodyMaxheight={500}
+        bodyMaxHeight={500}
         color="red"
         columns={peerColumns}
         data={peers}
       />
-      <Header>
-        Banned peers{" "}
-        <Label color="grey" size="mini" circular>
-          {banned.length}
-        </Label>
-      </Header>
-      <FixedTable
-        itemHeight={55}
-        bodyMaxheight={500}
-        color="red"
-        columns={bannedPeerColumns}
-        data={banned}
-      />
+      {isEmpty(banned) ? null : (
+        <>
+          <Header>
+            Banned peers{" "}
+            <Label color="grey" size="mini" circular>
+              {banned.length}
+            </Label>
+          </Header>
+          <FixedTable
+            itemHeight={55}
+            bodyMaxHeight={500}
+            color="red"
+            columns={bannedPeerColumns}
+            data={banned}
+          />
+        </>
+      )}
     </>
   );
 }
@@ -525,7 +529,7 @@ function BakersInfo(props: InfoProps) {
       </Header>
       <FixedTable
         itemHeight={55}
-        bodyMaxheight={500}
+        bodyMaxHeight={500}
         color="purple"
         columns={columns}
         data={sortedBakers}

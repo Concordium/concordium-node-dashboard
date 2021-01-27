@@ -375,7 +375,7 @@ type FixedTableProps<A extends Record<string, any>> = {
   columns: TableOptions<A>["columns"];
   data: TableOptions<A>["data"];
   itemHeight: number;
-  bodyMaxheight: number;
+  bodyMaxHeight: number;
   color?: "red" | "purple";
 };
 
@@ -395,7 +395,7 @@ export function FixedTable<A extends Record<string, any>>(
     useFlexLayout
   );
 
-  const showScrollbar = props.bodyMaxheight < rows.length * props.itemHeight;
+  const showScrollbar = props.bodyMaxHeight < rows.length * props.itemHeight;
 
   const RenderRow = React.useCallback(
     ({ index, style }) => {
@@ -416,39 +416,48 @@ export function FixedTable<A extends Record<string, any>>(
 
   // Render the UI for your table
   return (
-    <div
-      {...getTableProps()}
-      className={
-        "concordium table " +
-        (props.color ?? "") +
-        (showScrollbar ? " scrollbar" : "")
-      }
-    >
-      <div className="thead">
-        {headerGroups.map((headerGroup) => (
-          <div
-            {...headerGroup.getHeaderGroupProps()}
-            key={headerGroup.id}
-            className="tr"
-          >
-            {headerGroup.headers.map((column) => (
-              <div {...column.getHeaderProps()} key={column.id} className="th">
-                {column.render("Header")}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
+    <div className="table-wrapper">
+      <div
+        {...getTableProps()}
+        className={
+          "concordium table " +
+          (props.color ?? "") +
+          (showScrollbar ? " scrollbar" : "")
+        }
+      >
+        <div className="thead">
+          {headerGroups.map((headerGroup) => (
+            <div
+              {...headerGroup.getHeaderGroupProps()}
+              key={headerGroup.id}
+              className="tr"
+            >
+              {headerGroup.headers.map((column) => (
+                <div
+                  {...column.getHeaderProps()}
+                  key={column.id}
+                  className="th"
+                >
+                  {column.render("Header")}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
 
-      <div {...getTableBodyProps()} className="tbody">
-        <FixedSizeList
-          height={Math.min(props.bodyMaxheight, rows.length * props.itemHeight)}
-          itemCount={rows.length}
-          itemSize={props.itemHeight}
-          width="100%"
-        >
-          {RenderRow}
-        </FixedSizeList>
+        <div {...getTableBodyProps()} className="tbody">
+          <FixedSizeList
+            height={Math.min(
+              props.bodyMaxHeight,
+              rows.length * props.itemHeight
+            )}
+            itemCount={rows.length}
+            itemSize={props.itemHeight}
+            width="100%"
+          >
+            {RenderRow}
+          </FixedSizeList>
+        </div>
       </div>
     </div>
   );
