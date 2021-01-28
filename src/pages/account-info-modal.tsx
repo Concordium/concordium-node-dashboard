@@ -111,32 +111,10 @@ export function AccountInfoModal() {
     [identityProvidersQuery]
   );
 
-  const contractInstanceColumns: Column<API.ContractAddress>[] = useMemo(
-    () => [
-      {
-        Header: "Instance address",
-        accessor: function Address(address) {
-          const addressJSON = JSON.stringify(address);
-          return (
-            <div style={{ paddingLeft: "1em" }}>
-              <ClickToCopy
-                key={addressJSON}
-                display={`<${address.index},${address.subindex}>`}
-                copied={addressJSON}
-              />
-            </div>
-          );
-        },
-      },
-    ],
-    []
-  );
-
   const scheduleColumns: Column<API.ScheduleItem>[] = useMemo(
     () => [
       {
         Header: "Released at",
-        width: 2,
         accessor(schedule) {
           return formatDate(schedule.timestamp);
         },
@@ -163,101 +141,84 @@ export function AccountInfoModal() {
     []
   );
 
-  const contractInstances = useMemo(
-    () => accountInfoQuery.data?.accountInstances ?? [],
-    [accountInfoQuery.data?.accountInstances]
-  );
-
   const scheduleItems = useMemo(
     () => accountInfoQuery.data?.accountReleaseSchedule.schedule ?? [],
     [accountInfoQuery.data?.accountReleaseSchedule.schedule]
   );
 
+  const contractInstances = accountInfoQuery.data?.accountInstances ?? [];
+
+  const accountInfo = {
+    Address: whenDefined(
+      (a) => <ClickToCopy copied={a} display={a.slice(0, 12)} />,
+      address
+    ),
+    Balance: whenDefined(formatAmount, accountInfoQuery.data?.accountAmount),
+    "Contract instances": contractInstances.length,
+    Scheduled: whenDefined(
+      formatAmount,
+      accountInfoQuery.data?.accountReleaseSchedule.total
+    ),
+  };
+
+  const bakerInfo = whenDefined((accountBaker) => {
+    const changeAtDate = whenDefined(
+      (epoch, consensus) =>
+        formatDate(
+          epochDate(epoch, consensus.epochDuration, consensus.genesisTime)
+        ),
+      accountBaker.pendingChange?.epoch,
+      consensusInfoQuery.data
+    );
+
+    const pendingChangeInfo =
+      whenDefined(
+        (pending) =>
+          pending.change === "RemoveBaker" ? (
+            <>
+              Removing baker at <Unbreakable>{changeAtDate}</Unbreakable>
+            </>
+          ) : (
+            <>
+              Reducing stake to {formatAmount(pending.newStake)} at{" "}
+              <Unbreakable>{changeAtDate}</Unbreakable>
+            </>
+          ),
+        accountBaker?.pendingChange
+      ) ?? "None";
+
+    return {
+      "Baker ID": accountInfoQuery.data?.accountBaker?.bakerId,
+      "Staked amount": formatAmount(accountBaker.stakedAmount),
+      "Restake rewards": formatBool(accountBaker?.restakeEarnings),
+      "Pending change": pendingChangeInfo,
+    };
+  }, accountInfoQuery.data?.accountBaker);
+
   return (
     <Modal onClose={hideModal} open={showing}>
       <Header>
         <Icon name="user" />
-        <Header.Content>
-          Account information <ClickToCopy copied={address || ""} />
-        </Header.Content>
+        <Header.Content>Account information</Header.Content>
       </Header>
       <Modal.Content>
         <Grid doubling stackable>
-          <Grid.Row verticalAlign="middle">
-            <Grid.Column width={8}>
-              <Table unstackable definition>
-                <Table.Body>
-                  <Table.Row>
-                    <Table.Cell width={5}>Balance</Table.Cell>
-                    <Table.Cell>
-                      {whenDefined(
-                        formatAmount,
-                        accountInfoQuery.data?.accountAmount
-                      )}
-                    </Table.Cell>
-                  </Table.Row>
-                  <Table.Row>
-                    <Table.Cell width={5}>Scheduled</Table.Cell>
-                    <Table.Cell>
-                      {whenDefined(
-                        formatAmount,
-                        accountInfoQuery.data?.accountReleaseSchedule.total
-                      )}
-                    </Table.Cell>
-                  </Table.Row>
-                </Table.Body>
-              </Table>
+          <Grid.Row>
+            <Grid.Column width={10}>
+              <Header>Account</Header>
+              <KeyValueTable keyValues={accountInfo} />
             </Grid.Column>
-            <Grid.Column width={8}>
-              {whenDefined((accountBaker) => {
-                const changeAtDate = whenDefined(
-                  (epoch, consensus) =>
-                    formatDate(
-                      epochDate(
-                        epoch,
-                        consensus.epochDuration,
-                        consensus.genesisTime
-                      )
-                    ),
-                  accountBaker.pendingChange?.epoch,
-                  consensusInfoQuery.data
-                );
-
-                const pendingChangeInfo =
-                  whenDefined(
-                    (pending) =>
-                      pending.change === "RemoveBaker" ? (
-                        <>
-                          Removing baker at{" "}
-                          <Unbreakable>{changeAtDate}</Unbreakable>
-                        </>
-                      ) : (
-                        <>
-                          Reducing stake to {formatAmount(pending.newStake)} at{" "}
-                          <Unbreakable>{changeAtDate}</Unbreakable>
-                        </>
-                      ),
-                    accountBaker?.pendingChange
-                  ) ?? "None";
-
-                const bakerInfo = {
-                  "Baker ID": accountInfoQuery.data?.accountBaker?.bakerId,
-                  "Staked amount": formatAmount(accountBaker.stakedAmount),
-                  "Restake rewards": formatBool(accountBaker?.restakeEarnings),
-                  "Pending change": pendingChangeInfo,
-                };
-
-                return (
-                  <>
-                    <Header>Baker information</Header>
-                    <KeyValueTable color="purple" keyValues={bakerInfo} />
-                  </>
-                );
-              }, accountInfoQuery.data?.accountBaker)}
+            <Grid.Column width={6}>
+              {bakerInfo === undefined ? null : (
+                <>
+                  <Header>Baker information</Header>
+                  <KeyValueTable color="purple" keyValues={bakerInfo} />
+                </>
+              )}
             </Grid.Column>
           </Grid.Row>
           <Grid.Row>
-            <Grid.Column width={10}>
+            <Grid.Column width={16}>
               <Header>
                 Release schedule{" "}
                 <Label color="grey" size="mini" circular>
@@ -272,25 +233,6 @@ export function AccountInfoModal() {
                   data={scheduleItems}
                   bodyMaxHeight={300}
                   itemHeight={50}
-                  noMinWidth
-                />
-              )}
-            </Grid.Column>
-            <Grid.Column width={6}>
-              <Header>
-                Contract instances{" "}
-                <Label color="grey" size="mini" circular>
-                  {contractInstances.length}
-                </Label>
-              </Header>
-              {isEmpty(contractInstances) ? (
-                <span>None</span>
-              ) : (
-                <FixedTable
-                  columns={contractInstanceColumns}
-                  data={contractInstances}
-                  bodyMaxHeight={300}
-                  itemHeight={40}
                   noMinWidth
                 />
               )}
