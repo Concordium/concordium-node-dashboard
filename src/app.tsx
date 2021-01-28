@@ -67,13 +67,7 @@ function Navigation() {
           </Menu.Item>
         </Sidebar>
         <Sidebar.Pusher dimmed={dimmed}>
-          <div
-            style={{
-              overflowY: "auto",
-              height: "100vh",
-              marginLeft: allowHidingMenu ? undefined : 150 + "px",
-            }}
-          >
+          <div style={{ marginLeft: allowHidingMenu ? undefined : 150 + "px" }}>
             {allowHidingMenu ? (
               <Menu inverted fluid attached="bottom">
                 <Menu.Item onClick={() => setMenuActivated(!menuActivated)}>
