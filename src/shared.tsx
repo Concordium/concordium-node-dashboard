@@ -189,17 +189,11 @@ export function FixedTable<A extends Record<string, any>>(
       >
         <div className="thead">
           {headerGroups.map((headerGroup) => (
-            <div
-              {...headerGroup.getHeaderGroupProps()}
-              key={headerGroup.id}
-              className="tr"
-            >
+            // eslint-disable-next-line react/jsx-key
+            <div {...headerGroup.getHeaderGroupProps()} className="tr">
               {headerGroup.headers.map((column) => (
-                <div
-                  {...column.getHeaderProps()}
-                  key={column.id}
-                  className="th"
-                >
+                // eslint-disable-next-line react/jsx-key
+                <div {...column.getHeaderProps()} className="th">
                   {column.render("Header")}
                 </div>
               ))}

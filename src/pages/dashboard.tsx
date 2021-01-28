@@ -335,7 +335,7 @@ function PeersInfo(props: InfoProps) {
   type Peer = API.FetchPeersInfo["peers"][number];
   type BannedPeer = API.FetchPeersInfo["banned"][number];
 
-  const peerColumns: Column<Peer>[] = useMemo(
+  const peersColumns: Column<Peer>[] = useMemo(
     () => [
       {
         Header: "ID",
@@ -352,7 +352,6 @@ function PeersInfo(props: InfoProps) {
       {
         Header: "Latency",
         width: 2,
-
         accessor: (peer: Peer) =>
           whenDefined((l) => l + "ms", peer.stats?.latency),
       },
@@ -362,7 +361,7 @@ function PeersInfo(props: InfoProps) {
         accessor: (peer: Peer) => peer.status,
       },
       {
-        id: "unban",
+        id: "ban",
         accessor: function Unban(peer: Peer) {
           return (
             <Popup
@@ -384,13 +383,13 @@ function PeersInfo(props: InfoProps) {
     []
   );
 
-  const bannedPeerColumns: Column<BannedPeer>[] = useMemo(
+  const bannedPeersColumns: Column<BannedPeer>[] = useMemo(
     () => [
       {
         Header: "ID",
         width: 8,
         accessor: (peer: BannedPeer) =>
-          whenDefined((id) => <ClickToCopy copied={id} />, peer.id),
+          whenDefined((id) => <ClickToCopy copied={id} key={id} />, peer.id),
       },
       {
         Header: "Address",
@@ -438,7 +437,7 @@ function PeersInfo(props: InfoProps) {
         itemHeight={55}
         bodyMaxHeight={500}
         color="red"
-        columns={peerColumns}
+        columns={peersColumns}
         data={peers}
       />
       {isEmpty(banned) ? null : (
@@ -453,7 +452,7 @@ function PeersInfo(props: InfoProps) {
             itemHeight={55}
             bodyMaxHeight={500}
             color="red"
-            columns={bannedPeerColumns}
+            columns={bannedPeersColumns}
             data={banned}
           />
         </>
