@@ -9,11 +9,12 @@ import {
 import { DashboardPage } from "./pages/dashboard";
 import { ControlsPage } from "./pages/controls";
 import { BlockExplorerPage } from "./pages/block-explorer";
-import logoNoTextDark from "~/assets/concordium-logo-no-text-dark.svg";
-import logoNoTextLight from "~/assets/concordium-logo-no-text-light.svg";
-import logoWithText from "~/assets/concordium-text.svg";
+import logoNoTextDark from "./assets/concordium-logo-no-text-dark.svg";
+import logoNoTextLight from "./assets/concordium-logo-no-text-light.svg";
+import logoWithText from "./assets/concordium-text.svg";
 import { useDeviceScreen } from "./utils";
 import { QueryClient, QueryClientProvider } from "react-query";
+import { AccountInfoModal } from "./pages/account-info-modal";
 
 const queryClient = new QueryClient();
 
@@ -112,6 +113,7 @@ function Navigation() {
                 <BlockExplorerPage />
               </Route>
             </Switch>
+            <AccountInfoModal />
           </div>
         </Sidebar.Pusher>
       </Sidebar.Pushable>

@@ -32,10 +32,10 @@ import {
   ClickToCopy,
   KeyValueTable,
   TimeRelativeToNow,
-  useAccountInfoModal,
   FixedTable,
 } from "../shared";
 import { Column } from "react-table";
+import { useAccountInfoSearchQuery } from "./account-info-modal";
 
 const msInADay = 1000 * 60 * 60 * 24;
 const msInAWeek = msInADay * 7;
@@ -99,11 +99,14 @@ function fetchDashboardInfo() {
 type DashboardInfo = UnwrapPromiseRec<ReturnType<typeof fetchDashboardInfo>>;
 
 export function DashboardPage() {
+  const accountInfo = useAccountInfoSearchQuery();
+
   const [refetchInterval, setRefetchInterval] = useState(2000);
   const infoQuery = useQuery<DashboardInfo, Error>(
     "dashboardInfo",
     fetchDashboardInfo,
     {
+      enabled: !accountInfo.showing,
       refetchInterval,
       keepPreviousData: true,
     }
@@ -226,6 +229,8 @@ function NodeInfo(props: InfoProps) {
 function BakerInfo(props: InfoProps) {
   const { data } = props.infoQuery;
 
+  const accountInfo = useAccountInfoSearchQuery();
+
   if (
     data?.bakerAccount?.accountBaker === undefined ||
     data.bakerNode?.bakerAccount === undefined
@@ -267,6 +272,12 @@ function BakerInfo(props: InfoProps) {
       <Account
         consensus={data.consensus}
         address={data.bakerNode.bakerAccount}
+        onClick={() =>
+          whenDefined(
+            (bakerAccount) => accountInfo.showModal(bakerAccount),
+            data.bakerNode?.bakerAccount
+          )
+        }
       />
     ),
     "Staked amount": formatAmount(accountBaker.stakedAmount),
@@ -454,9 +465,7 @@ function PeersInfo(props: InfoProps) {
 function BakersInfo(props: InfoProps) {
   const { data } = props.infoQuery;
 
-  const [accountInfoModal, lookupAccount] = useAccountInfoModal(
-    data?.consensus
-  );
+  const accountInfo = useAccountInfoSearchQuery();
 
   const sortedBakers = useMemo(
     () =>
@@ -484,9 +493,7 @@ function BakersInfo(props: InfoProps) {
               <Account
                 consensus={data.consensus}
                 address={baker.bakerAccount}
-                onClick={() =>
-                  lookupAccount(data.consensus.bestBlock, baker.bakerAccount)
-                }
+                onClick={() => accountInfo.showModal(baker.bakerAccount)}
               />
             ),
             data
@@ -514,12 +521,11 @@ function BakersInfo(props: InfoProps) {
         },
       },
     ],
-    [data, lookupAccount]
+    [accountInfo, data]
   );
 
   return (
     <>
-      {accountInfoModal}
       <Header>
         Bakers
         <Label color="grey" size="mini" circular>
