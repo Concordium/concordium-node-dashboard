@@ -121,7 +121,7 @@ export function ClickToCopy(props: ClickToCopyProps) {
         />
       }
     >
-      Copied: {props.copied}
+      Copied: <span className="monospace">{props.copied}</span>
     </Popup>
   );
 }
@@ -138,6 +138,7 @@ type FixedTableProps<A extends Record<string, any>> = {
   data: TableOptions<A>["data"];
   itemHeight: number;
   bodyMaxHeight: number;
+  noMinWidth?: boolean;
   color?: "red" | "purple";
 };
 
@@ -184,7 +185,8 @@ export function FixedTable<A extends Record<string, any>>(
         className={
           "concordium table " +
           (props.color ?? "") +
-          (showScrollbar ? " scrollbar" : "")
+          (showScrollbar ? " scrollbar" : "") +
+          (props.noMinWidth ?? false ? "" : " min-width")
         }
       >
         <div className="thead">

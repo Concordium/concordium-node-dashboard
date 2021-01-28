@@ -89,7 +89,7 @@ export type ContractAddress = {
 
 export type Amount = BigInt;
 
-type ScheduleItem = {
+export type ScheduleItem = {
   timestamp: Date;
   amount: Amount;
   transactions: string[];
@@ -361,15 +361,20 @@ export async function fetchAccountInfo(
     json.accountBaker?.stakedAmount
   );
 
-  json.accountReleaseSchedule.total = parseAmountString(
-    json.accountReleaseSchedule.total
-  );
-
-  // Parse date strings
+  // Parse credential dates
   for (const cred of json.accountCredentials) {
     const { policy } = cred.value.contents;
     policy.createdAt = parsePolicyDate(policy.createdAt);
     policy.validTo = parsePolicyDate(policy.validTo);
+  }
+
+  // Parse release schedule
+  json.accountReleaseSchedule.total = parseAmountString(
+    json.accountReleaseSchedule.total
+  );
+  for (const schedule of json.accountReleaseSchedule.schedule) {
+    schedule.amount = parseAmountString(schedule.amount);
+    schedule.timestamp = new Date(schedule.timestamp);
   }
 
   return json;

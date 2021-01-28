@@ -1,5 +1,6 @@
 import {
   ClickToCopy,
+  FixedTable,
   KeyValueTable,
   Unbreakable,
   useSearchParams,
@@ -13,9 +14,18 @@ import {
   formatDate,
   whenDefined,
 } from "../utils";
-import React, { useCallback } from "react";
-import { Button, Grid, Header, Icon, Modal, Table } from "semantic-ui-react";
+import React, { useCallback, useMemo } from "react";
+import {
+  Button,
+  Grid,
+  Header,
+  Icon,
+  Label,
+  Modal,
+  Table,
+} from "semantic-ui-react";
 import { capitalize, isEmpty } from "lodash";
+import { Column } from "react-table";
 
 const accountInfoSearch = "account-info";
 const blockhashSearch = "blockhash";
@@ -99,6 +109,68 @@ export function AccountInfoModal() {
       return ip;
     },
     [identityProvidersQuery]
+  );
+
+  const contractInstanceColumns: Column<API.ContractAddress>[] = useMemo(
+    () => [
+      {
+        Header: "Instance address",
+        accessor: function Address(address) {
+          const addressJSON = JSON.stringify(address);
+          return (
+            <div style={{ paddingLeft: "1em" }}>
+              <ClickToCopy
+                key={addressJSON}
+                display={`<${address.index},${address.subindex}>`}
+                copied={addressJSON}
+              />
+            </div>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  const scheduleColumns: Column<API.ScheduleItem>[] = useMemo(
+    () => [
+      {
+        Header: "Released at",
+        width: 2,
+        accessor(schedule) {
+          return formatDate(schedule.timestamp);
+        },
+      },
+      {
+        Header: "Amount",
+        accessor(schedule) {
+          return formatAmount(schedule.amount);
+        },
+      },
+      {
+        Header: "Transactions",
+        accessor(schedule) {
+          return (
+            <>
+              {schedule.transactions.map((tx) => (
+                <ClickToCopy key={tx} display={tx.slice(0, 8)} copied={tx} />
+              ))}
+            </>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  const contractInstances = useMemo(
+    () => accountInfoQuery.data?.accountInstances ?? [],
+    [accountInfoQuery.data?.accountInstances]
+  );
+
+  const scheduleItems = useMemo(
+    () => accountInfoQuery.data?.accountReleaseSchedule.schedule ?? [],
+    [accountInfoQuery.data?.accountReleaseSchedule.schedule]
   );
 
   return (
@@ -185,64 +257,42 @@ export function AccountInfoModal() {
             </Grid.Column>
           </Grid.Row>
           <Grid.Row>
-            <Grid.Column width={8}>
-              <Header>Release schedule</Header>
-              {whenDefined(
-                (schedule) =>
-                  isEmpty(schedule) ? (
-                    <span>None</span>
-                  ) : (
-                    <Table>
-                      <Table.Header>
-                        <Table.Row>
-                          <Table.HeaderCell>Released at</Table.HeaderCell>
-                          <Table.HeaderCell>Amount</Table.HeaderCell>
-                          <Table.HeaderCell>Transactions</Table.HeaderCell>
-                        </Table.Row>
-                      </Table.Header>
-                      <Table.Body>
-                        {schedule.map((item) => (
-                          <Table.Row key={item.timestamp.getTime()}>
-                            <Table.Cell>
-                              {formatDate(item.timestamp)}
-                            </Table.Cell>
-                            <Table.Cell>{formatAmount(item.amount)}</Table.Cell>
-                            <Table.Cell>
-                              {item.transactions.map((tx) => (
-                                <ClickToCopy
-                                  key={tx}
-                                  display={tx.slice(0, 8)}
-                                  copied={tx}
-                                />
-                              ))}
-                            </Table.Cell>
-                          </Table.Row>
-                        ))}
-                      </Table.Body>
-                    </Table>
-                  ),
-                accountInfoQuery.data?.accountReleaseSchedule.schedule
+            <Grid.Column width={10}>
+              <Header>
+                Release schedule{" "}
+                <Label color="grey" size="mini" circular>
+                  {scheduleItems.length}
+                </Label>
+              </Header>
+              {isEmpty(scheduleItems) ? (
+                <span>None</span>
+              ) : (
+                <FixedTable
+                  columns={scheduleColumns}
+                  data={scheduleItems}
+                  bodyMaxHeight={300}
+                  itemHeight={50}
+                  noMinWidth
+                />
               )}
             </Grid.Column>
-            <Grid.Column width={8}>
-              <Header>Contract instances</Header>
-              {whenDefined(
-                (instances) =>
-                  isEmpty(instances) ? (
-                    <span>None</span>
-                  ) : (
-                    instances.map((address) => {
-                      const addressJSON = JSON.stringify(address);
-                      return (
-                        <ClickToCopy
-                          key={addressJSON}
-                          display={`<${address.index},${address.subindex}>`}
-                          copied={addressJSON}
-                        />
-                      );
-                    })
-                  ),
-                accountInfoQuery.data?.accountInstances
+            <Grid.Column width={6}>
+              <Header>
+                Contract instances{" "}
+                <Label color="grey" size="mini" circular>
+                  {contractInstances.length}
+                </Label>
+              </Header>
+              {isEmpty(contractInstances) ? (
+                <span>None</span>
+              ) : (
+                <FixedTable
+                  columns={contractInstanceColumns}
+                  data={contractInstances}
+                  bodyMaxHeight={300}
+                  itemHeight={40}
+                  noMinWidth
+                />
               )}
             </Grid.Column>
           </Grid.Row>

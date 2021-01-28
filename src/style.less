@@ -57,7 +57,9 @@
     border: 1px solid @table-border-color;
     border-radius: 0.28571429rem;
     color: @table-header-font-color;
-    min-width: 600px !important;
+    &.min-width {
+      min-width: 600px !important;
+    }
 
     &.purple {
       border-top: 0.2em solid @purple;
@@ -68,12 +70,13 @@
 
     .th,
     .td {
-      padding: 1em;
+      padding: 0em 1em;
       display: flex;
       align-items: center;
     }
 
     .th {
+      padding: 1em;
       background-color: @table-header-background-color;
       font-weight: 700;
     }
