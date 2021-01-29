@@ -183,7 +183,7 @@ export function FixedTable<A extends Record<string, any>>(
       <div
         {...getTableProps()}
         className={
-          "concordium table " +
+          "concordium table striped " +
           (props.color ?? "") +
           (showScrollbar ? " scrollbar" : "") +
           (props.noMinWidth ?? false ? "" : " min-width")
