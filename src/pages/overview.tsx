@@ -28,6 +28,7 @@ import {
   KeyValueTable,
   FixedTable,
   PendingChange,
+  TimeInterpolate,
 } from "../shared";
 import { Column } from "react-table";
 import { useAccountInfoSearchQuery } from "./account-info-modal";
@@ -39,7 +40,7 @@ export function OverviewPage() {
     ["NodeInfo"],
     API.fetchNodeInfo,
     {
-      refetchInterval: 4000,
+      refetchInterval: 10000,
       enabled: !accountInfo.showing,
     }
   );
@@ -140,49 +141,92 @@ export function OverviewPage() {
     peersQuery.data?.banned,
   ]);
 
-  const nodeInfo = {
-    ID: whenDefined((id) => <ClickToCopy copied={id} />, nodeQuery.data?.id),
-    Version: peerQuery.data?.version,
-    Uptime: whenDefined(
-      (uptime) => formatDurationInMillis(uptime, { hideSeconds: true }),
-      peerQuery.data?.uptime
-    ),
-    "Local time": whenDefined(formatDate, nodeQuery.data?.localTime),
-    "Average sent": whenDefined(formatBytes, peersQuery.data?.avgBpsOut),
-    "Average received": whenDefined(formatBytes, peersQuery.data?.avgBpsIn),
-    Baking: whenDefined(formatBool, nodeQuery.data?.inBakingCommittee),
-  };
-
-  const bakerInfo = whenDefined(
-    (accountBaker, bakerAccount) => {
-      const pendingChangeInfo =
-        whenDefined(
-          (pending, consensus) => (
-            <PendingChange
-              epochDuration={consensus.epochDuration}
-              genesisTime={consensus.genesisTime}
-              pending={pending}
-            />
-          ),
-          accountBaker.pendingChange,
-          consensusQuery.data
-        ) ?? "None";
-
-      return {
-        "Baker ID": accountBaker.bakerId,
-        Account: (
-          <Account
-            address={bakerAccount}
-            onClick={() => accountInfo.showModal(bakerAccount)}
-          />
+  const uptime = useMemo(
+    () =>
+      whenDefined(
+        (uptime) => (
+          <TimeInterpolate time={uptime}>
+            {(time) => <span>{formatDurationInMillis(time)}</span>}
+          </TimeInterpolate>
         ),
-        "Staked amount": formatAmount(accountBaker.stakedAmount),
-        "Restake rewards": formatBool(accountBaker.restakeEarnings),
-        "Pending change": pendingChangeInfo,
-      };
-    },
-    bakerAccountQuery.data?.accountBaker,
-    nodeBirkBaker?.bakerAccount
+        peerQuery.data?.uptime
+      ),
+    [peerQuery.data?.uptime]
+  );
+
+  const localtime = useMemo(
+    () =>
+      whenDefined(
+        (localtime) => (
+          <TimeInterpolate time={localtime.getTime()}>
+            {(time) => <span>{formatDate(new Date(time))}</span>}
+          </TimeInterpolate>
+        ),
+        nodeQuery.data?.localTime
+      ),
+    [nodeQuery.data?.localTime]
+  );
+
+  const nodeInfo = useMemo(
+    () => ({
+      ID: whenDefined((id) => <ClickToCopy copied={id} />, nodeQuery.data?.id),
+      Version: peerQuery.data?.version,
+      Uptime: uptime,
+      "Local time": localtime,
+      "Average sent": whenDefined(formatBytes, peersQuery.data?.avgBpsOut),
+      "Average received": whenDefined(formatBytes, peersQuery.data?.avgBpsIn),
+      Baking: whenDefined(formatBool, nodeQuery.data?.inBakingCommittee),
+    }),
+    [
+      localtime,
+      nodeQuery.data?.id,
+      nodeQuery.data?.inBakingCommittee,
+      peerQuery.data?.version,
+      peersQuery.data?.avgBpsIn,
+      peersQuery.data?.avgBpsOut,
+      uptime,
+    ]
+  );
+
+  const bakerInfo = useMemo(
+    () =>
+      whenDefined(
+        (accountBaker, bakerAccount) => {
+          const pendingChangeInfo =
+            whenDefined(
+              (pending, consensus) => (
+                <PendingChange
+                  epochDuration={consensus.epochDuration}
+                  genesisTime={consensus.genesisTime}
+                  pending={pending}
+                />
+              ),
+              accountBaker.pendingChange,
+              consensusQuery.data
+            ) ?? "None";
+
+          return {
+            "Baker ID": accountBaker.bakerId,
+            Account: (
+              <Account
+                address={bakerAccount}
+                onClick={() => accountInfo.showModal(bakerAccount)}
+              />
+            ),
+            "Staked amount": formatAmount(accountBaker.stakedAmount),
+            "Restake rewards": formatBool(accountBaker.restakeEarnings),
+            "Pending change": pendingChangeInfo,
+          };
+        },
+        bakerAccountQuery.data?.accountBaker,
+        nodeBirkBaker?.bakerAccount
+      ),
+    [
+      accountInfo,
+      bakerAccountQuery.data?.accountBaker,
+      consensusQuery.data,
+      nodeBirkBaker?.bakerAccount,
+    ]
   );
 
   type Peer = API.PeersInfo["peers"][number];

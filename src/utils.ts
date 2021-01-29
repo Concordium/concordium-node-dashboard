@@ -48,10 +48,10 @@ export function useInterval(fn: () => void, rate: number, enable = true) {
 }
 
 /** Hook for reading the current time, given a refresh rate. */
-export function useCurrentDate(refreshRate: number) {
-  const [date, setDate] = useState(new Date());
-  useInterval(() => setDate(new Date()), refreshRate);
-  return date;
+export function useCurrentTime(refreshRate: number) {
+  const [time, setTime] = useState(new Date());
+  useInterval(() => setTime(new Date()), refreshRate);
+  return time;
 }
 
 /** Calls function every epoch with the current epochIndex */
@@ -191,6 +191,7 @@ export function formatDate(date: Date, options: formatDateOptions = {}) {
           hour: "numeric",
           day: "numeric",
           minute: "numeric",
+          second: "numeric",
         }),
   });
 }

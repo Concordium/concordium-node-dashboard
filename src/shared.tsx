@@ -11,7 +11,13 @@ import {
 import { FixedSizeList } from "react-window";
 import { useTable, TableOptions, useFlexLayout } from "react-table";
 import * as API from "./api";
-import { epochDate, formatAmount, formatDate } from "./utils";
+import {
+  epochDate,
+  formatAmount,
+  formatDate,
+  useCurrentTime,
+  useInterval,
+} from "./utils";
 
 type AccountProps = {
   address: string;
@@ -40,18 +46,33 @@ export type TimeRelatedToNowDistance = {
 
 /** Display a human readable distance to or from the given time e.g. 5 seconds ago */
 export function TimeRelativeToNow(props: TimeRelatedToNowDistance) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(interval);
-  }, []);
+  const time = useCurrentTime(1000);
   return (
     <>
-      {formatDistanceStrict(props.time, now, {
+      {formatDistanceStrict(props.time, time, {
         addSuffix: true,
       })}
     </>
   );
+}
+
+type TimeInterpolateProps = {
+  time: number;
+  children: (time: number) => JSX.Element;
+};
+
+export function TimeInterpolate(props: TimeInterpolateProps) {
+  const [updated, setUpdated] = useState(Date.now());
+  const [time, setTime] = useState(Date.now());
+
+  useEffect(() => {
+    const now = Date.now();
+    setTime(now);
+    setUpdated(now);
+  }, [props.time]);
+  useInterval(() => setTime(Date.now()), 1000);
+
+  return props.children(props.time + time - updated);
 }
 
 export type KeyValueTableProps = {
