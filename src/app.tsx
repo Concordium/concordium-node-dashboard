@@ -6,8 +6,8 @@ import {
   NavLink,
   Route,
 } from "react-router-dom";
-import { DashboardPage } from "./pages/dashboard";
-import { ControlsPage } from "./pages/controls";
+import { OverviewPage } from "./pages/overview";
+import { ConsensusPage } from "./pages/consensus";
 import { BlockExplorerPage } from "./pages/block-explorer";
 import logoNoTextDark from "./assets/concordium-logo-no-text-dark.svg";
 import logoNoTextLight from "./assets/concordium-logo-no-text-light.svg";
@@ -53,12 +53,12 @@ function Navigation() {
 
           <Menu.Item as={NavLink} to="/" exact>
             <Icon name="dashboard" />
-            Dashboard
+            Overview
           </Menu.Item>
 
-          <Menu.Item as={NavLink} to="/controls">
-            <Icon name="wrench" />
-            Controls
+          <Menu.Item as={NavLink} to="/consensus">
+            <Icon name="handshake outline" />
+            Consensus
           </Menu.Item>
 
           <Menu.Item as={NavLink} to="/block-explorer">
@@ -98,10 +98,10 @@ function Navigation() {
             ) : null}
             <Switch>
               <Route path="/" exact>
-                <DashboardPage />
+                <OverviewPage />
               </Route>
-              <Route path="/controls">
-                <ControlsPage />
+              <Route path="/consensus">
+                <ConsensusPage />
               </Route>
               <Route path="/block-explorer">
                 <BlockExplorerPage />

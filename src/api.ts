@@ -49,7 +49,7 @@ export type BirkParametersBaker = {
   bakerLotteryPower: number;
 };
 
-type BirkParametersInfo = {
+export type BirkParametersInfo = {
   bakers: BirkParametersBaker[];
   electionDifficulty: number;
   electionNonce: string;
@@ -71,7 +71,7 @@ type AccountInfoBaker = {
   pendingChange?: BakerChange;
 };
 
-type BakerChange =
+export type BakerChange =
   | {
       change: "ReduceStake";
       newStake: Amount;
@@ -150,7 +150,7 @@ type PolicyAttributes = Partial<{
   UNKNOWN: string;
 }>;
 
-type AccountInfo = {
+export type AccountInfo = {
   accountAmount: Amount;
   accountBaker?: AccountInfoBaker;
   accountCredentials: AccountCredential[];
@@ -180,9 +180,10 @@ type AnonymityRevoker = {
   arDescription: IpOrArDescription;
 };
 
-export type FetchPeersInfo = UnwrapPromiseRec<
-  ReturnType<typeof fetchPeersInfo>
->;
+export type PeersInfo = UnwrapPromiseRec<ReturnType<typeof fetchPeersInfo>>;
+export type PeerInfo = UnwrapPromiseRec<ReturnType<typeof fetchPeerInfo>>;
+
+export type NodeInfo = UnwrapPromiseRec<ReturnType<typeof fetchNodeInfo>>;
 
 // Helper functions
 

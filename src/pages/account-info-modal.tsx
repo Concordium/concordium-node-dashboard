@@ -2,16 +2,15 @@ import {
   ClickToCopy,
   FixedTable,
   KeyValueTable,
-  Unbreakable,
-  useSearchParams,
+  PendingChange,
 } from "../shared";
 import * as API from "../api";
 import { useQuery } from "react-query";
 import {
-  epochDate,
   formatAmount,
   formatBool,
   formatDate,
+  useSearchParams,
   whenDefined,
 } from "../utils";
 import React, { useCallback, useMemo } from "react";
@@ -79,7 +78,10 @@ export function AccountInfoModal() {
   const consensusInfoQuery = useQuery(
     ["ConsensusInfo"],
     API.fetchConsensusInfo,
-    { refetchInterval: queryBlochHash === undefined ? 2000 : false }
+    {
+      refetchInterval: queryBlochHash === undefined ? 4000 : false,
+      enabled: showing,
+    }
   );
 
   const blockHash = queryBlochHash ?? consensusInfoQuery.data?.bestBlock;
@@ -162,29 +164,17 @@ export function AccountInfoModal() {
   };
 
   const bakerInfo = whenDefined((accountBaker) => {
-    const changeAtDate = whenDefined(
-      (epoch, consensus) =>
-        formatDate(
-          epochDate(epoch, consensus.epochDuration, consensus.genesisTime)
-        ),
-      accountBaker.pendingChange?.epoch,
-      consensusInfoQuery.data
-    );
-
     const pendingChangeInfo =
       whenDefined(
-        (pending) =>
-          pending.change === "RemoveBaker" ? (
-            <>
-              Removing baker at <Unbreakable>{changeAtDate}</Unbreakable>
-            </>
-          ) : (
-            <>
-              Reducing stake to {formatAmount(pending.newStake)} at{" "}
-              <Unbreakable>{changeAtDate}</Unbreakable>
-            </>
-          ),
-        accountBaker?.pendingChange
+        (pending, consensus) => (
+          <PendingChange
+            epochDuration={consensus.epochDuration}
+            genesisTime={consensus.genesisTime}
+            pending={pending}
+          />
+        ),
+        accountBaker.pendingChange,
+        consensusInfoQuery.data
       ) ?? "None";
 
     return {

@@ -2,6 +2,7 @@ import { addMilliseconds, formatDuration, intervalToDuration } from "date-fns";
 import { round } from "lodash";
 import { useState, useEffect } from "react";
 import { Amount } from "./api";
+import { useHistory, useLocation } from "react-router-dom";
 
 /**
  * Hook for getting the current width of the window.
@@ -34,6 +35,106 @@ export function useDeviceScreen(offset = 0) {
     : width < breakpoints.tablet + offset
     ? "tablet"
     : "computer";
+}
+
+/** Calls function at a given rate */
+export function useInterval(fn: () => void, rate: number, enable = true) {
+  useEffect(() => {
+    if (enable) {
+      const interval = setInterval(fn, rate);
+      return () => clearInterval(interval);
+    }
+  }, [enable, fn, rate]);
+}
+
+/** Hook for reading the current time, given a refresh rate. */
+export function useCurrentDate(refreshRate: number) {
+  const [date, setDate] = useState(new Date());
+  useInterval(() => setDate(new Date()), refreshRate);
+  return date;
+}
+
+/** Calls function every epoch with the current epochIndex */
+export function useEveryEpoch(
+  fn: (epochIndex: number) => void,
+  epochDurationMillis?: number,
+  genesisTime?: Date
+) {
+  const [nextEpoch, setNextEpoch] = useState<undefined | number>();
+  useEffect(() => {
+    if (epochDurationMillis === undefined || genesisTime === undefined) {
+      return;
+    }
+    const now = new Date();
+    const epochIndex = getEpochIndexAt(now, epochDurationMillis, genesisTime);
+    const nextEpoch = epochDate(
+      epochIndex + 1,
+      epochDurationMillis,
+      genesisTime
+    );
+    fn(epochIndex);
+    setNextEpoch(nextEpoch.getTime());
+  }, [epochDurationMillis, fn, genesisTime]);
+  useEffect(() => {
+    if (
+      epochDurationMillis === undefined ||
+      genesisTime === undefined ||
+      nextEpoch === undefined
+    ) {
+      return;
+    }
+    const timeToNextEpoch = nextEpoch - Date.now();
+    const timeout = setTimeout(() => {
+      const epochIndex = getEpochIndexAt(
+        new Date(),
+        epochDurationMillis,
+        genesisTime
+      );
+      const nextEpoch = epochDate(
+        epochIndex + 1,
+        epochDurationMillis,
+        genesisTime
+      );
+      fn(epochIndex);
+      setNextEpoch(nextEpoch.getTime());
+    }, timeToNextEpoch);
+    return () => clearTimeout(timeout);
+  }, [epochDurationMillis, fn, genesisTime, nextEpoch]);
+}
+
+/** Hook for getting the current epoch index */
+export function useEpochIndex(
+  epochDurationMillis?: number,
+  genesisTime?: Date
+) {
+  const now = new Date();
+  const [epochIndex, setEpochIndex] = useState<undefined | number>(
+    whenDefined(
+      (epochDurationMillis, genesisTime) =>
+        getEpochIndexAt(now, epochDurationMillis, genesisTime),
+      epochDurationMillis,
+      genesisTime
+    )
+  );
+  useEveryEpoch(setEpochIndex, epochDurationMillis, genesisTime);
+  return epochIndex;
+}
+
+/**
+ * Hook for reading and manipulating the url search query parameters.
+ */
+export function useSearchParams() {
+  const location = useLocation();
+  const history = useHistory();
+  return [
+    new URLSearchParams(location.search),
+    (setter: () => URLSearchParams) => {
+      const searchString = setter().toString();
+      if (searchString !== location.search) {
+        history.push({ search: searchString === "" ? "" : `?${searchString}` });
+      }
+    },
+  ] as const;
 }
 
 /** Recursively unwraps a type from a Promise or anything with a `then` method.
@@ -142,6 +243,18 @@ export function epochDate(
   genesisTime: Date
 ): Date {
   return addMilliseconds(genesisTime, epochIndex * epochDurationMillis);
+}
+
+/** Calculates the epoch index from a given date */
+export function getEpochIndexAt(
+  epochAtDate: Date,
+  epochDurationMillis: number,
+  genesisTime: Date
+) {
+  const genesis = genesisTime.getTime();
+  const now = epochAtDate.getTime();
+  const millisSinceGenesis = now - genesis;
+  return Math.floor(millisSinceGenesis / epochDurationMillis);
 }
 
 /** Takes an object of promises and awaits all the keys in the object */

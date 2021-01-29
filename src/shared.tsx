@@ -1,7 +1,5 @@
 import { formatDistanceStrict } from "date-fns";
-import { add, capitalize, isEmpty } from "lodash";
 import React, { useCallback, useEffect, useState } from "react";
-import { useQuery } from "react-query";
 import {
   Button,
   Icon,
@@ -10,32 +8,13 @@ import {
   StrictTableProps,
   Table,
 } from "semantic-ui-react";
-import * as API from "./api";
 import { FixedSizeList } from "react-window";
 import { useTable, TableOptions, useFlexLayout } from "react-table";
-import { useHistory, useLocation } from "react-router-dom";
-
-/**
- * Hook for reading and manipulating the url search query parameters
- */
-export function useSearchParams() {
-  const location = useLocation();
-  const history = useHistory();
-  return [
-    new URLSearchParams(location.search),
-    (setter: () => URLSearchParams) => {
-      const searchString = setter().toString();
-      if (searchString !== location.search) {
-        history.push({ search: searchString === "" ? "" : `?${searchString}` });
-      }
-    },
-  ] as const;
-}
+import * as API from "./api";
+import { epochDate, formatAmount, formatDate } from "./utils";
 
 type AccountProps = {
-  blockHash?: string;
   address: string;
-  consensus: API.ConsensusInfo;
   onClick?: () => void;
 };
 
@@ -218,5 +197,29 @@ export function FixedTable<A extends Record<string, any>>(
         </div>
       </div>
     </div>
+  );
+}
+
+type PendingChangeProps = {
+  epochDuration: number;
+  genesisTime: Date;
+  pending: API.BakerChange;
+};
+
+/** Render a bakers pending change */
+export function PendingChange(props: PendingChangeProps) {
+  const changeAtDate = formatDate(
+    epochDate(props.pending.epoch, props.epochDuration, props.genesisTime)
+  );
+
+  return props.pending.change === "RemoveBaker" ? (
+    <>
+      Removing baker at <Unbreakable>{changeAtDate}</Unbreakable>
+    </>
+  ) : (
+    <>
+      Reducing stake to {formatAmount(props.pending.newStake)} at{" "}
+      <Unbreakable>{changeAtDate}</Unbreakable>
+    </>
   );
 }
