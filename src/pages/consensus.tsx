@@ -1,4 +1,4 @@
-import { orderBy, round } from "lodash";
+import { isEmpty, orderBy, round, uniq } from "lodash";
 import React, { useMemo } from "react";
 import { Column } from "react-table";
 import {
@@ -67,6 +67,12 @@ export function ConsensusPage() {
       ),
     { enabled: consensusQuery.data?.bestBlock !== undefined }
   );
+
+  const queries = useMemo(() => [consensusQuery, nodeQuery, birkQuery], [
+    birkQuery,
+    consensusQuery,
+    nodeQuery,
+  ]);
 
   const expectedBlocks = useMemo(
     () =>
@@ -153,19 +159,24 @@ export function ConsensusPage() {
     [accountInfo, expectedBlocks, nodeBakerId]
   );
 
+  const errors = useMemo(
+    () => uniq(queries.filter((q) => q.isError).map((q) => q.error?.message)),
+    [queries]
+  );
+
   return (
     <Container className="page-content">
       <Header dividing textAlign="center" as="h1">
         Consensus
       </Header>
-      {consensusQuery.isError || nodeQuery.isError || birkQuery.isError ? (
+      {isEmpty(errors) ? null : (
         <Message negative>
           <Message.Header>Failed polling node</Message.Header>
-          <p>With error message: {consensusQuery.error?.message}</p>
-          <p>With error message: {nodeQuery.error?.message}</p>
-          <p>With error message: {birkQuery.error?.message}</p>
+          {errors.map((msg) => (
+            <p key={msg}>With error message: {msg}</p>
+          ))}
         </Message>
-      ) : null}
+      )}
 
       <Dimmer.Dimmable>
         <Grid doubling stackable>

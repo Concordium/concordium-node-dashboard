@@ -21,7 +21,7 @@ import {
   useEpochIndex,
   whenDefined,
 } from "../utils";
-import { isEmpty } from "lodash";
+import { isEmpty, uniq } from "lodash";
 import {
   Account,
   ClickToCopy,
@@ -110,17 +110,28 @@ export function OverviewPage() {
       enabled:
         consensusQuery.data?.bestBlock !== undefined &&
         nodeBirkBaker?.bakerAccount !== undefined,
+      keepPreviousData: true,
     }
   );
 
-  const queries = [
-    nodeQuery,
-    consensusQuery,
-    peerQuery,
-    peersQuery,
-    birkQuery,
-    bakerAccountQuery,
-  ];
+  const queries = useMemo(
+    () => [
+      nodeQuery,
+      consensusQuery,
+      peerQuery,
+      peersQuery,
+      birkQuery,
+      bakerAccountQuery,
+    ],
+    [
+      bakerAccountQuery,
+      birkQuery,
+      consensusQuery,
+      nodeQuery,
+      peerQuery,
+      peersQuery,
+    ]
+  );
 
   const peers = useMemo(() => peersQuery.data?.peers ?? [], [
     peersQuery.data?.peers,
@@ -262,7 +273,13 @@ export function OverviewPage() {
     []
   );
 
-  const errors = queries.filter((q) => q.isError);
+  const errors = useMemo(
+    () =>
+      uniq(
+        queries.filter((q) => q.isError).map((query) => query.error?.message)
+      ),
+    [queries]
+  );
 
   return (
     <Container className="page-content">
@@ -272,10 +289,9 @@ export function OverviewPage() {
       {isEmpty(errors) ? null : (
         <Message negative>
           <Message.Header>Failed polling node</Message.Header>
-          {errors.map((query) => {
-            const message = query.error?.message;
-            return <p key={message}>With error message: {message}</p>;
-          })}
+          {errors.map((msg) => (
+            <p key={msg}>With error message: {msg}</p>
+          ))}
         </Message>
       )}
 
@@ -313,7 +329,7 @@ export function OverviewPage() {
               </Header>
               <FixedTable
                 itemHeight={55}
-                bodyMaxHeight={500}
+                bodyMaxHeight={610}
                 color="red"
                 columns={peersColumns}
                 data={peers}
@@ -338,7 +354,10 @@ export function OverviewPage() {
             </Grid.Column>
           </Grid.Row>
         </Grid>
-        <Dimmer active={queries.some((q) => q.isLoading)} inverted>
+        <Dimmer
+          active={queries.some((q) => q.isLoading && q.isSuccess)}
+          inverted
+        >
           <Loader size="massive" />
         </Dimmer>
       </Dimmer.Dimmable>
