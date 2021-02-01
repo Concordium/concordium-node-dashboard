@@ -105,7 +105,7 @@ export function ConsensusPage() {
       consensusQuery.data?.lastFinalizedTime ?? undefined
     ),
     "Finalization period average (EMA)": whenDefined(
-      (period) => formatDurationInMillis(period * 1000),
+      (period) => formatDurationInMillis(round(period) * 1000),
       consensusQuery.data?.finalizationPeriodEMA
     ),
     "Expected blocks": whenDefined(
