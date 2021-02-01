@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   Button,
   Container,
@@ -6,6 +6,7 @@ import {
   Grid,
   Header,
   Label,
+  List,
   Loader,
   Message,
   Popup,
@@ -32,6 +33,17 @@ import {
 } from "../shared";
 import { Column } from "react-table";
 import { useAccountInfoSearchQuery } from "./account-info-modal";
+
+/** The number of milliseconds a node's localTime must be off, for a warning to appear. */
+const nodeLocalTimeOffset = 1000;
+/** The minimum number of peers a node must have, otherwise a warning appears. */
+const minimumNumberOfPeers = 5;
+/** The minimum latency for a peer to have a high latency. */
+const highPeerLatency = 500;
+/** The number of milliseconds for a warning to appear for the last received block */
+const maximumMillisOfLastBlockReceived = 4000;
+/** The number of milliseconds for a warning to appear for the last finalized block */
+const maximumMillisOfLastBlockFinalized = 14000;
 
 export function OverviewPage() {
   const accountInfo = useAccountInfoSearchQuery();
@@ -134,6 +146,167 @@ export function OverviewPage() {
     ]
   );
 
+  const checkLocalTime = useMemo(
+    () =>
+      whenDefined((localTime) => {
+        const now = Date.now();
+        const difference = now - localTime;
+        if (difference > nodeLocalTimeOffset) {
+          return {
+            type: "error",
+            message: `Node local time is behind by ${formatDurationInMillis(
+              difference,
+              { showMilliseconds: true }
+            )}`,
+          } as const;
+        }
+        if (difference < -nodeLocalTimeOffset) {
+          return {
+            type: "error",
+            message: `Node local time is ahead by ${formatDurationInMillis(
+              Math.abs(difference),
+              { showMilliseconds: true }
+            )}`,
+          } as const;
+        }
+        return { type: "success" } as const;
+      }, nodeQuery.data?.localTime.getTime()),
+    [nodeQuery.data?.localTime]
+  );
+
+  const checkNumberOfPeers = useMemo(
+    () =>
+      whenDefined((peers) => {
+        if (peers.length < minimumNumberOfPeers) {
+          return {
+            type: "error",
+            message: `Node only have ${peers.length} peers.`,
+          } as const;
+        }
+        return { type: "success" } as const;
+      }, peersQuery.data?.peers),
+    [peersQuery.data?.peers]
+  );
+
+  const checkLatencyOfPeers = useMemo(
+    () =>
+      whenDefined((peers) => {
+        const highLatencyPeers = peers.filter(
+          (p) => (p.stats?.latency ?? 0) >= highPeerLatency
+        );
+        const halfOfThePeers = Math.floor(peers.length / 2);
+        if (highLatencyPeers.length > halfOfThePeers) {
+          return {
+            type: "error",
+            message: `${highLatencyPeers.length} out of ${peers.length} peers have a high latency`,
+          } as const;
+        }
+        return { type: "success" } as const;
+      }, peersQuery.data?.peers),
+    [peersQuery.data?.peers]
+  );
+
+  const checkCatchupStatusOfPeers = useMemo(
+    () =>
+      whenDefined((peers) => {
+        const notUpToDatePeers = peers.filter((p) => p.status !== "Up to date");
+        const halfOfThePeers = Math.floor(peers.length / 2);
+        if (notUpToDatePeers.length > halfOfThePeers) {
+          return {
+            type: "error",
+            message: `${notUpToDatePeers.length} out of ${peers.length} peers are not up to date`,
+          } as const;
+        }
+        return { type: "success" } as const;
+      }, peersQuery.data?.peers),
+    [peersQuery.data?.peers]
+  );
+
+  const checkLastBlockReceived = useMemo(
+    () =>
+      whenDefined((lastReceivedBlockTime) => {
+        const now = Date.now();
+        const difference = now - lastReceivedBlockTime.getTime();
+        if (difference > maximumMillisOfLastBlockReceived) {
+          return {
+            type: "error",
+            message: `Last received block is more than ${formatDurationInMillis(
+              Math.abs(difference),
+              { showMilliseconds: true }
+            )} ago`,
+          } as const;
+        }
+        return { type: "success" } as const;
+      }, consensusQuery.data?.blockLastReceivedTime ?? undefined),
+    [consensusQuery.data?.blockLastReceivedTime]
+  );
+
+  const checkFinalizedBlockReceived = useMemo(
+    () =>
+      whenDefined((lastFinalizedBlockTime) => {
+        const now = Date.now();
+        const difference = now - lastFinalizedBlockTime.getTime();
+        if (difference > maximumMillisOfLastBlockFinalized) {
+          return {
+            type: "error",
+            message: `Last finalized block is more than ${formatDurationInMillis(
+              Math.abs(difference),
+              { showMilliseconds: true }
+            )} ago`,
+          } as const;
+        }
+        return { type: "success" } as const;
+      }, consensusQuery.data?.lastFinalizedTime ?? undefined),
+    [consensusQuery.data?.lastFinalizedTime]
+  );
+
+  const healthChecks: CheckResults = useMemo(
+    () => [
+      {
+        header: "Peers",
+        checks: [
+          {
+            description: "Node local time line up",
+            ...checkLocalTime,
+          },
+          {
+            description: "Number of peers",
+            ...checkNumberOfPeers,
+          },
+          {
+            description: "Latency of peers",
+            ...checkLatencyOfPeers,
+          },
+          {
+            description: "Up to date with most peers",
+            ...checkCatchupStatusOfPeers,
+          },
+        ],
+      },
+      {
+        header: "Consensus",
+        checks: [
+          {
+            description: "Last received block is recent",
+            ...checkLastBlockReceived,
+          },
+          {
+            description: "Last finalization is recent",
+            ...checkFinalizedBlockReceived,
+          },
+        ],
+      },
+    ],
+    [
+      checkCatchupStatusOfPeers,
+      checkFinalizedBlockReceived,
+      checkLastBlockReceived,
+      checkLatencyOfPeers,
+      checkLocalTime,
+      checkNumberOfPeers,
+    ]
+  );
+
   const peers = useMemo(() => peersQuery.data?.peers ?? [], [
     peersQuery.data?.peers,
   ]);
@@ -141,9 +314,11 @@ export function OverviewPage() {
     peersQuery.data?.banned,
   ]);
 
-  const uptime = useMemo(
-    () =>
-      whenDefined(
+  const nodeInfo = useMemo(
+    () => ({
+      ID: whenDefined((id) => <ClickToCopy copied={id} />, nodeQuery.data?.id),
+      Version: peerQuery.data?.version,
+      Uptime: whenDefined(
         (uptime) => (
           <TimeInterpolate time={uptime}>
             {(time) => <span>{formatDurationInMillis(time)}</span>}
@@ -151,12 +326,7 @@ export function OverviewPage() {
         ),
         peerQuery.data?.uptime
       ),
-    [peerQuery.data?.uptime]
-  );
-
-  const localtime = useMemo(
-    () =>
-      whenDefined(
+      "Local time": whenDefined(
         (localtime) => (
           <TimeInterpolate time={localtime.getTime()}>
             {(time) => <span>{formatDate(new Date(time))}</span>}
@@ -164,27 +334,20 @@ export function OverviewPage() {
         ),
         nodeQuery.data?.localTime
       ),
-    [nodeQuery.data?.localTime]
-  );
-
-  const nodeInfo = useMemo(
-    () => ({
-      ID: whenDefined((id) => <ClickToCopy copied={id} />, nodeQuery.data?.id),
-      Version: peerQuery.data?.version,
-      Uptime: uptime,
-      "Local time": localtime,
       "Average sent": whenDefined(formatBytes, peersQuery.data?.avgBpsOut),
       "Average received": whenDefined(formatBytes, peersQuery.data?.avgBpsIn),
       Baking: whenDefined(formatBool, nodeQuery.data?.inBakingCommittee),
+      Health: <HealthIndicator checkResults={healthChecks} />,
     }),
     [
-      localtime,
+      healthChecks,
       nodeQuery.data?.id,
       nodeQuery.data?.inBakingCommittee,
+      nodeQuery.data?.localTime,
+      peerQuery.data?.uptime,
       peerQuery.data?.version,
       peersQuery.data?.avgBpsIn,
       peersQuery.data?.avgBpsOut,
-      uptime,
     ]
   );
 
@@ -407,5 +570,46 @@ export function OverviewPage() {
         </Dimmer>
       </Dimmer.Dimmable>
     </Container>
+  );
+}
+
+type CheckResult = {
+  description: string;
+} & ({ type: "error"; message: string } | { type?: "success" });
+
+type CheckResults = { header: string; checks: CheckResult[] }[];
+
+type HealthIndicatorProps = {
+  checkResults: CheckResults;
+};
+
+function HealthIndicator(props: HealthIndicatorProps) {
+  return (
+    <List>
+      {props.checkResults.map((group) => (
+        <List.Item key={group.header}>
+          <List.Header>{group.header}</List.Header>
+          <List.Content>
+            <List.List>
+              {group.checks.map((check) => (
+                <List.Item key={check.description}>
+                  {check.type === "success" ? (
+                    <List.Icon name="check" color="green" />
+                  ) : check.type === "error" ? (
+                    <List.Icon name="warning sign" color="yellow" />
+                  ) : null}
+                  <List.Content>
+                    <List.Header>{check.description}</List.Header>
+                    {check.type === "error" ? (
+                      <List.Description>{check.message}</List.Description>
+                    ) : null}
+                  </List.Content>
+                </List.Item>
+              ))}
+            </List.List>
+          </List.Content>
+        </List.Item>
+      ))}
+    </List>
   );
 }

@@ -147,25 +147,27 @@ export type UnwrapPromiseRec<T> = T extends PromiseLike<infer U>
 /** Format a duration in milliseconds to a human readable string of years, month, weeks, days, hours, minutes and seconds  */
 export function formatDurationInMillis(
   millis: number,
-  { hideSeconds = false } = {}
+  { hideSeconds = false, showMilliseconds = false } = {}
 ) {
-  return formatDuration(
-    intervalToDuration({
-      start: 0,
-      end: millis,
-    }),
-    {
-      format: [
-        "years",
-        "months",
-        "weeks",
-        "days",
-        "hours",
-        "minutes",
-        ...(hideSeconds ? [] : ["seconds"]),
-      ],
-      delimiter: ", ",
-    }
+  return (
+    formatDuration(
+      intervalToDuration({
+        start: 0,
+        end: millis,
+      }),
+      {
+        format: [
+          "years",
+          "months",
+          "weeks",
+          "days",
+          "hours",
+          "minutes",
+          ...(hideSeconds ? [] : ["seconds"]),
+        ],
+        delimiter: ", ",
+      }
+    ) + (showMilliseconds ? ` ${millis % 1000} milliseconds` : "")
   );
 }
 
