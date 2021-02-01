@@ -256,9 +256,10 @@ export function OverviewPage() {
         width: 2,
         accessor: (peer) => peer.status,
       },
-      {
+      // Button for banning a node, should be used as soon as the banning has been fixed.
+      /* {
         id: "ban",
-        accessor: function Unban(peer) {
+        accessor: function Ban(peer) {
           return (
             <Popup
               trigger={
@@ -274,7 +275,7 @@ export function OverviewPage() {
             </Popup>
           );
         },
-      },
+       },*/
     ],
     []
   );
