@@ -336,10 +336,30 @@ export function OverviewPage() {
       ),
       "Average sent": whenDefined(formatBytes, peersQuery.data?.avgBpsOut),
       "Average received": whenDefined(formatBytes, peersQuery.data?.avgBpsIn),
-      Baking: whenDefined(formatBool, nodeQuery.data?.inBakingCommittee),
+      Baking: whenDefined(
+        (isInBaking, epochDuration) => {
+          switch (isInBaking) {
+            case "Active in committee":
+              return "Yes";
+            case "Added but not active in committee":
+              return `Will become a baker in less than ${formatDurationInMillis(
+                epochDuration * 2,
+                { hideSeconds: true }
+              )}`;
+            case "Added but wrong keys":
+              return "Unable to bake: mismatching keys";
+            default:
+            case "Not in committee":
+              return "No";
+          }
+        },
+        nodeQuery.data?.inBakingCommittee,
+        consensusQuery.data?.epochDuration
+      ),
       Health: <HealthIndicator checkResults={healthChecks} />,
     }),
     [
+      consensusQuery.data?.epochDuration,
       healthChecks,
       nodeQuery.data?.id,
       nodeQuery.data?.inBakingCommittee,
