@@ -3,6 +3,7 @@ import {
   Button,
   Container,
   Dimmer,
+  Divider,
   Grid,
   Header,
   Label,
@@ -511,9 +512,10 @@ export function OverviewPage() {
 
   return (
     <Container className="page-content">
-      <Header dividing textAlign="center" as="h1">
+      <Header textAlign="center" as="h1">
         Overview
       </Header>
+      <Divider />
       {isEmpty(errors) ? null : (
         <Message negative>
           <Message.Header>Failed polling node</Message.Header>
@@ -583,7 +585,7 @@ export function OverviewPage() {
           </Grid.Row>
         </Grid>
         <Dimmer
-          active={queries.some((q) => q.isLoading && q.isSuccess)}
+          active={queries.some((q) => q.isLoading && !q.isSuccess)}
           inverted
         >
           <Loader size="massive" />
