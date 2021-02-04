@@ -4,11 +4,11 @@ import * as T from "../grpc-api-client/concordium_p2p_rpc_pb";
 
 // Constants
 
-const nodeUrl = "http://localhost:9999";
+const grpcWebHost = process.env.GRPC_WEB_HOST ?? "http://127.0.0.1:9999";
 
-console.info("Connecting to node GRPC at ", nodeUrl);
+console.info("Connecting to node GRPC at ", grpcWebHost);
 
-const client = new P2PPromiseClient(nodeUrl);
+const client = new P2PPromiseClient(grpcWebHost);
 const meta = { authentication: "rpcadmin" };
 const empty = new T.Empty();
 
