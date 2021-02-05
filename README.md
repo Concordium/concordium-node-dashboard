@@ -82,5 +82,3 @@ Run the following command, which will create a `dist` directory containing the b
 ```
 npm run build
 ```
-
-

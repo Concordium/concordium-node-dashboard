@@ -2,7 +2,7 @@
 version: '3'
 services:
   grpc-proxy:
-    image: envoyproxy/envoy:v1.16.1
+    image: envoyproxy/envoy:v1.17.0
     network_mode: "host"
     volumes:
       - ./envoy.yaml:/etc/envoy/envoy.yaml
