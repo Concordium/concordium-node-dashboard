@@ -6,7 +6,7 @@ services:
     network_mode: "host"
     volumes:
       - ./envoy.yaml:/etc/envoy/envoy.yaml
-    command: /usr/local/bin/envoy -c /etc/envoy/envoy.yaml
+    command: /usr/local/bin/envoy --config-path /etc/envoy/envoy.yaml
   build-grpc:
     image: juanjodiaz/grpc-web-generator
     volumes:

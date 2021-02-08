@@ -31,4 +31,4 @@ RUN npm run build
 FROM scratch
 COPY --from=build-project project/dist ./static
 # Copy envoy config file needed for running the proxy
-COPY ./envoy.yaml .
+COPY ./envoy.yaml ./nginx.conf ./
