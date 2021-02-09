@@ -340,17 +340,17 @@ export function OverviewPage() {
       Baking: whenDefined(
         (isInBaking, epochDuration) => {
           switch (isInBaking) {
-            case "Active in committee":
+            case "ActiveInCommittee":
               return "Yes";
-            case "Added but not active in committee":
+            case "AddedButNotActiveInCommittee":
               return `Will become a baker in less than ${formatDurationInMillis(
                 epochDuration * 2,
                 { hideSeconds: true }
               )}`;
-            case "Added but wrong keys":
+            case "AddedButWrongKeys":
               return "Unable to bake: mismatching keys";
             default:
-            case "Not in committee":
+            case "NotInCommittee":
               return "No";
           }
         },

@@ -231,15 +231,15 @@ function isInBakingCommitteeToString(
 ) {
   switch (status) {
     case T.NodeInfoResponse.IsInBakingCommittee.ACTIVE_IN_COMMITTEE:
-      return "Active in committee";
+      return "ActiveInCommittee";
     case T.NodeInfoResponse.IsInBakingCommittee
       .ADDED_BUT_NOT_ACTIVE_IN_COMMITTEE:
-      return "Added but not active in committee";
+      return "AddedButNotActiveInCommittee";
     case T.NodeInfoResponse.IsInBakingCommittee.ADDED_BUT_WRONG_KEYS:
-      return "Added but wrong keys";
+      return "AddedButWrongKeys";
     default:
     case T.NodeInfoResponse.IsInBakingCommittee.NOT_IN_COMMITTEE:
-      return "Not in committee";
+      return "NotInCommittee";
   }
 }
 
