@@ -4,9 +4,11 @@ import { Column } from "react-table";
 import {
   Container,
   Dimmer,
+  Divider,
   Grid,
   Header,
   Label,
+  Loader,
   Message,
 } from "semantic-ui-react";
 import {
@@ -117,7 +119,7 @@ export function ConsensusPage() {
   const columns: Column<API.BirkParametersBaker>[] = useMemo(
     () => [
       {
-        Header: "ID",
+        Header: "Baker ID",
         accessor: (baker) =>
           baker.bakerId + (baker.bakerId === nodeBakerId ? "(This node)" : ""),
       },
@@ -166,9 +168,10 @@ export function ConsensusPage() {
 
   return (
     <Container className="page-content">
-      <Header dividing textAlign="center" as="h1">
+      <Header textAlign="center" as="h1">
         Consensus
       </Header>
+      <Divider />
       {isEmpty(errors) ? null : (
         <Message negative>
           <Message.Header>Failed polling node</Message.Header>
@@ -210,9 +213,12 @@ export function ConsensusPage() {
             </Grid.Column>
           </Grid.Row>
         </Grid>
-        {/* <Dimmer active={infoQuery.isLoading || infoQuery.isError} inverted>
+        <Dimmer
+          active={queries.some((q) => q.isLoading && !q.isSuccess)}
+          inverted
+        >
           <Loader size="massive" />
-        </Dimmer> */}
+        </Dimmer>
       </Dimmer.Dimmable>
     </Container>
   );

@@ -3,6 +3,7 @@ import {
   Button,
   Container,
   Dimmer,
+  Divider,
   Grid,
   Header,
   Label,
@@ -336,10 +337,30 @@ export function OverviewPage() {
       ),
       "Average sent": whenDefined(formatBytes, peersQuery.data?.avgBpsOut),
       "Average received": whenDefined(formatBytes, peersQuery.data?.avgBpsIn),
-      Baking: whenDefined(formatBool, nodeQuery.data?.inBakingCommittee),
+      Baking: whenDefined(
+        (isInBaking, epochDuration) => {
+          switch (isInBaking) {
+            case "ActiveInCommittee":
+              return "Yes";
+            case "AddedButNotActiveInCommittee":
+              return `Will become a baker in less than ${formatDurationInMillis(
+                epochDuration * 2,
+                { hideSeconds: true }
+              )}`;
+            case "AddedButWrongKeys":
+              return "Unable to bake: mismatching keys";
+            default:
+            case "NotInCommittee":
+              return "No";
+          }
+        },
+        nodeQuery.data?.inBakingCommittee,
+        consensusQuery.data?.epochDuration
+      ),
       Health: <HealthIndicator checkResults={healthChecks} />,
     }),
     [
+      consensusQuery.data?.epochDuration,
       healthChecks,
       nodeQuery.data?.id,
       nodeQuery.data?.inBakingCommittee,
@@ -491,9 +512,10 @@ export function OverviewPage() {
 
   return (
     <Container className="page-content">
-      <Header dividing textAlign="center" as="h1">
+      <Header textAlign="center" as="h1">
         Overview
       </Header>
+      <Divider />
       {isEmpty(errors) ? null : (
         <Message negative>
           <Message.Header>Failed polling node</Message.Header>
@@ -563,7 +585,7 @@ export function OverviewPage() {
           </Grid.Row>
         </Grid>
         <Dimmer
-          active={queries.some((q) => q.isLoading && q.isSuccess)}
+          active={queries.some((q) => q.isLoading && !q.isSuccess)}
           inverted
         >
           <Loader size="massive" />

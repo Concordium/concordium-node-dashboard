@@ -226,18 +226,38 @@ function catchupStatusToString(status: T.PeerElement.CatchupStatus) {
   }
 }
 
+function isInBakingCommitteeToString(
+  status: T.NodeInfoResponse.IsInBakingCommittee
+) {
+  switch (status) {
+    case T.NodeInfoResponse.IsInBakingCommittee.ACTIVE_IN_COMMITTEE:
+      return "ActiveInCommittee";
+    case T.NodeInfoResponse.IsInBakingCommittee
+      .ADDED_BUT_NOT_ACTIVE_IN_COMMITTEE:
+      return "AddedButNotActiveInCommittee";
+    case T.NodeInfoResponse.IsInBakingCommittee.ADDED_BUT_WRONG_KEYS:
+      return "AddedButWrongKeys";
+    default:
+    case T.NodeInfoResponse.IsInBakingCommittee.NOT_IN_COMMITTEE:
+      return "NotInCommittee";
+  }
+}
+
 // API functions
 
 export async function fetchNodeInfo() {
   const res = await client.nodeInfo(empty, meta);
+
   return {
     id: getGoogleStringValue(res.getNodeId()),
     localTime: new Date(res.getCurrentLocaltime() * 1000),
-    inBakingCommittee: res.getConsensusBakerCommittee(),
+    inBakingCommittee: isInBakingCommitteeToString(
+      res.getConsensusBakerCommittee()
+    ),
     bakerId: getGoogleIntValue(res.getConsensusBakerId()),
     bakerRunning: res.getConsensusBakerRunning(),
     inFinalizationCommittee: res.getConsensusFinalizerCommittee(),
-  };
+  } as const;
 }
 
 export async function fetchPeersInfo() {
@@ -272,7 +292,7 @@ export async function fetchPeersInfo() {
       port,
       status: catchupStatusToString(peer.getCatchupStatus()),
       stats,
-    };
+    } as const;
   });
 
   const banned = bannedRes.getPeersList().map((peer) => {

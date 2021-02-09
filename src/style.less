@@ -7,6 +7,27 @@
 @tablet: ~"only screen and (min-width: @{screen-tablet-min}) and (max-width: @{screen-tablet-max}";
 @computer: ~"only screen and (min-width: @{screen-computer-min})";
 
+// Colors
+
+@purple: #b413ec;
+@red: #db2828;
+@off-white: #fbfbf9;
+@pale-blue: #4486ab;
+@dusk-blue: #325d76;
+@wood: #907d6a;
+@off-black: #181817;
+@black: #000000;
+@gray-text: #979797;
+@positive-amount-text: #4ac29e;
+
+.sidebar.menu {
+  background-color: @off-white !important;
+}
+
+// h1.ui.header {
+//   margin-bottom: 1em;
+// }
+
 #app-mount {
   height: 100%;
 }
@@ -17,7 +38,7 @@
 }
 
 .page-content {
-  margin-top: 1em;
+  padding-top: 1.5em;
 }
 
 .ui.inverted.dimmer > .content > * {
@@ -43,9 +64,6 @@
 .table-wrapper {
   overflow-x: auto;
 }
-
-@purple: #b413ec;
-@red: #db2828;
 
 @table-border-color: rgba(34, 36, 38, 0.15);
 @table-header-background-color: #f9fafb;
