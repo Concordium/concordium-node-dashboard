@@ -2,8 +2,6 @@
 
 A dashboard shipped with the concordium-node for inspecting the current state of the node.
 
-
-
 ## Installation
 
 Install [NodeJS](https://nodejs.org/en/) and NPM.
@@ -82,3 +80,26 @@ Run the following command, which will create a `dist` directory containing the b
 ```
 npm run build
 ```
+
+## Releasing
+
+
+As this is shipped as part of the concordium-node container, the image for the concordium-node contains the runtime dependencies (nginx and envoy),
+but uses the image `192549843005.dkr.ecr.eu-west-1.amazonaws.com/concordium/node-dashboard`
+for the configuration and static files for the node dashboard.
+
+To build the image run the following in the project root:
+```
+docker build . --tag 192549843005.dkr.ecr.eu-west-1.amazonaws.com/concordium/node-dashboard:<some-version>
+```
+Make sure to replace `<some-version>`.
+This will build the static files and copy the configuration files of envoy and nginx to the image.
+
+Then to push the image, you need the aws-cli and to login before running:
+
+```
+docker push 192549843005.dkr.ecr.eu-west-1.amazonaws.com/concordium/node-dashboard:<some-version>
+```
+
+To use in staging and/or testnet, update the version found in the dockerfiles
+found in concordium node repository.
