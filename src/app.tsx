@@ -61,10 +61,10 @@ function Navigation() {
             Consensus
           </Menu.Item>
 
-          <Menu.Item as={NavLink} to="/block-explorer">
+          {/* <Menu.Item as={NavLink} to="/block-explorer">
             <Icon name="binoculars" />
             Block Explorer
-          </Menu.Item>
+          </Menu.Item> */}
         </Sidebar>
         <Sidebar.Pusher dimmed={dimmed}>
           <div style={{ marginLeft: allowHidingMenu ? undefined : 150 + "px" }}>
