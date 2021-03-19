@@ -1,0 +1,34 @@
+name: Node.js CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [15.x]
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.CONCORDIUM_CI }}
+        submodules: recursive
+    - name: Build proto
+      uses: "docker://juanjodiaz/grpc-web-generator:1.2.1"
+      with:
+        entrypoint: ./build_grpc-web-client.sh
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+    - run: npm ci
+    - run: npm run lint
+    - run: npm run typecheck
+    - run: npm run formatcheck
+    - run: npm run build
