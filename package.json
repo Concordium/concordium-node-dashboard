@@ -18,8 +18,8 @@
     "last 3 ios_saf versions",
     "last 3 safari versions"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "Concordium <developers@concordium.com>",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@types/lodash": "^4.14.168",
     "@types/parcel-env": "0.0.0",

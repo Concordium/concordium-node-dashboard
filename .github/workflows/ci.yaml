@@ -17,7 +17,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        token: ${{ secrets.CONCORDIUM_CI }}
         submodules: recursive
     - name: Build proto
       uses: "docker://juanjodiaz/grpc-web-generator:1.2.1"
