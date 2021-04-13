@@ -1,5 +1,7 @@
 # Concordium Node dashboard
 
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.0-4baaaa.svg)](https://github.com/Concordium/.github/blob/main/.github/CODE_OF_CONDUCT.md)
+
 A dashboard shipped with the concordium-node for inspecting the current state of the node.
 
 ## Installation
