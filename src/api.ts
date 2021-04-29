@@ -383,6 +383,7 @@ export async function fetchAccountInfo(
   );
 
   // Parse credential dates
+  json.accountCredentials = Object.values(json.accountCredentials);
   for (const cred of json.accountCredentials) {
     const { policy } = cred.value.contents;
     policy.createdAt = parsePolicyDate(policy.createdAt);
