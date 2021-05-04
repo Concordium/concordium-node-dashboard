@@ -6,7 +6,9 @@ import * as T from "../grpc-api-client/concordium_p2p_rpc_pb";
 
 // If GRPC_WEB_HOST is not set at build time, assume that we can access GRPC on the same host.
 // This requires the server to be configured correctly for proxying.
-const grpcWebHost = process.env.GRPC_WEB_HOST ?? (window.location.protocol + "//" + window.location.host);
+const grpcWebHost =
+  process.env.GRPC_WEB_HOST ??
+  window.location.protocol + "//" + window.location.host;
 
 console.info("Connecting to node GRPC at ", grpcWebHost);
 

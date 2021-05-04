@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "parcel src/index.html",
     "build": "parcel build src/index.html",
-    "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}'",
+    "lint": "eslint src/**/*.{js,jsx,ts,tsx}",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write src/**/*",
     "formatcheck": "prettier --check src/**/*"
