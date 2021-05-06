@@ -15,6 +15,7 @@ WORKDIR /project
 
 # Install dependencies
 COPY package.json ./
+COPY package-lock.json ./
 RUN npm install
 
 # Copy project
@@ -24,7 +25,6 @@ COPY src ./src
 COPY --from=build-grpc project/grpc-api-client ./grpc-api-client
 
 # Build
-ENV GRPC_WEB_HOST=http://127.0.0.1:9999
 RUN npm run build
 
 # Move artifacts to empty image

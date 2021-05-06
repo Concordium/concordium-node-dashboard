@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import {
   Button,
   Container,
@@ -42,9 +42,9 @@ const minimumNumberOfPeers = 5;
 /** The minimum latency for a peer to have a high latency. */
 const highPeerLatency = 500;
 /** The number of milliseconds for a warning to appear for the last received block */
-const maximumMillisOfLastBlockReceived = 4000;
+const maximumMillisOfLastBlockReceived = 300000;
 /** The number of milliseconds for a warning to appear for the last finalized block */
-const maximumMillisOfLastBlockFinalized = 14000;
+const maximumMillisOfLastBlockFinalized = 600000;
 
 export function OverviewPage() {
   const accountInfo = useAccountInfoSearchQuery();
@@ -181,7 +181,7 @@ export function OverviewPage() {
         if (peers.length < minimumNumberOfPeers) {
           return {
             type: "error",
-            message: `Node only have ${peers.length} peers.`,
+            message: `Node only has ${peers.length} peers.`,
           } as const;
         }
         return { type: "success" } as const;
@@ -233,7 +233,7 @@ export function OverviewPage() {
             type: "error",
             message: `Last received block is more than ${formatDurationInMillis(
               Math.abs(difference),
-              { showMilliseconds: true }
+              { showMilliseconds: false }
             )} ago`,
           } as const;
         }
@@ -252,7 +252,7 @@ export function OverviewPage() {
             type: "error",
             message: `Last finalized block is more than ${formatDurationInMillis(
               Math.abs(difference),
-              { showMilliseconds: true }
+              { showMilliseconds: false }
             )} ago`,
           } as const;
         }
