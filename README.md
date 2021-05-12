@@ -64,6 +64,20 @@ To watch files and automate the build run:
 npm run dev
 ```
 
+### CAVEATS
+
+- Note that on MacOS the docker `network_mode: "host"` is not currently supported by the Docker Desktop for MacOS. 
+  In order to run this locally, one has to remove the `network_mode` from the `docker-compose.yml` and expose the ports 
+  `9901` and `9999` i.e., insert the following to the grpc-proxy. 
+  
+  ```
+  ports:
+    - "9901:9901"
+    - "9999:9999"
+  ```
+ Moreover one has to substitute the localhost IP in `envoy.yaml` i.e., `127.0.0.1`  with `host.docker.internal`.
+ Finally substitute the `GRPC_WEB_HOST` URL in `api.ts` with `http://localhost:9999` (the proxy runs on this port by default).
+
 ### Using a node on stagenet
 
 If you want to use a node at a different address, update the envoy config to this address.
