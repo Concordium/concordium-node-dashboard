@@ -160,7 +160,6 @@ export type AccountInfo = {
   accountCredentials: AccountCredential[];
   accountEncryptedAmount: EncryptedAmount;
   accountEncryptionKey: string;
-  accountInstances: ContractAddress[];
   accountNonce: number;
   accountReleaseSchedule: AccountReleaseSchedule;
 };

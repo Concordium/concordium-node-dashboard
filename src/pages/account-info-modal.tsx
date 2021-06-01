@@ -148,15 +148,12 @@ export function AccountInfoModal() {
     [accountInfoQuery.data?.accountReleaseSchedule.schedule]
   );
 
-  const contractInstances = accountInfoQuery.data?.accountInstances ?? [];
-
   const accountInfo = {
     Address: whenDefined(
       (a) => <ClickToCopy copied={a} display={a.slice(0, 12)} />,
       address
     ),
     Balance: whenDefined(formatAmount, accountInfoQuery.data?.accountAmount),
-    "Contract instances": contractInstances.length,
     Scheduled: whenDefined(
       formatAmount,
       accountInfoQuery.data?.accountReleaseSchedule.total
