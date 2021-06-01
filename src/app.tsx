@@ -1,11 +1,6 @@
 import React, { useState } from "react";
 import { Icon, Menu, Sidebar } from "semantic-ui-react";
-import {
-  BrowserRouter as Router,
-  Switch,
-  NavLink,
-  Route,
-} from "react-router-dom";
+import { HashRouter as Router, Switch, NavLink, Route } from "react-router-dom";
 import { OverviewPage } from "./pages/overview";
 import { ConsensusPage } from "./pages/consensus";
 import { BlockExplorerPage } from "./pages/block-explorer";
