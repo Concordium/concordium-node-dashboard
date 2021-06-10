@@ -5,7 +5,7 @@ services:
     image: envoyproxy/envoy:v1.17.0
     network_mode: "host"
     volumes:
-      - ./envoy.yaml:/etc/envoy/envoy.yaml
+      - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
     command: /usr/local/bin/envoy --config-path /etc/envoy/envoy.yaml
   build-grpc:
     image: juanjodiaz/grpc-web-generator
@@ -14,3 +14,9 @@ services:
       - ./build_grpc-web-client.sh:/build_grpc-web-client.sh:ro
       - ./grpc-api-client:/grpc-api-client
     command: bash /build_grpc-web-client.sh
+  nginx-test:
+    image: nginx
+    network_mode: "host"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/node-dashboard.conf
+      - ./dist:/node-dashboard/static:ro
