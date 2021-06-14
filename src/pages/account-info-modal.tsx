@@ -25,6 +25,7 @@ import {
 } from "semantic-ui-react";
 import { capitalize, isEmpty } from "lodash";
 import { Column } from "react-table";
+import { useApiClient } from "../provide-api";
 
 const accountInfoSearch = "account-info";
 const blockhashSearch = "blockhash";
@@ -68,6 +69,7 @@ export function useAccountInfoSearchQuery() {
  * the form of url search parameters.
  */
 export function AccountInfoModal() {
+  const client = useApiClient();
   const {
     showing,
     address,
@@ -77,7 +79,7 @@ export function AccountInfoModal() {
 
   const consensusInfoQuery = useQuery(
     ["ConsensusInfo"],
-    API.fetchConsensusInfo,
+    client.fetchConsensusInfo,
     {
       refetchInterval: queryBlochHash === undefined ? 4000 : false,
       enabled: showing,
@@ -88,13 +90,13 @@ export function AccountInfoModal() {
 
   const accountInfoQuery = useQuery(
     ["AccountInfo", blockHash, address],
-    () => whenDefined(API.fetchAccountInfo, blockHash, address),
+    () => whenDefined(client.fetchAccountInfo, blockHash, address),
     { enabled: showing, keepPreviousData: showing }
   );
 
   const identityProvidersQuery = useQuery(
     ["IdentityProviders"],
-    () => whenDefined(API.fetchIdentityProviders, blockHash),
+    () => whenDefined(client.fetchIdentityProviders, blockHash),
     { enabled: showing, keepPreviousData: true, staleTime: Infinity }
   );
 

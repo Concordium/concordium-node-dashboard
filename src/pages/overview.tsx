@@ -34,6 +34,7 @@ import {
 } from "../shared";
 import { Column } from "react-table";
 import { useAccountInfoSearchQuery } from "./account-info-modal";
+import { useApiClient } from "../provide-api";
 
 /** The number of milliseconds a node's localTime must be off, for a warning to appear. */
 const nodeLocalTimeOffset = 1000;
@@ -47,11 +48,12 @@ const maximumMillisOfLastBlockReceived = 300000;
 const maximumMillisOfLastBlockFinalized = 600000;
 
 export function OverviewPage() {
+  const client = useApiClient();
   const accountInfo = useAccountInfoSearchQuery();
 
   const nodeQuery = useQuery<API.NodeInfo, Error>(
     ["NodeInfo"],
-    API.fetchNodeInfo,
+    client.fetchNodeInfo,
     {
       refetchInterval: 10000,
       enabled: !accountInfo.showing,
@@ -59,7 +61,7 @@ export function OverviewPage() {
   );
   const consensusQuery = useQuery<API.ConsensusInfo, Error>(
     ["ConsensusInfo"],
-    API.fetchConsensusInfo,
+    client.fetchConsensusInfo,
     {
       refetchInterval: 4000,
       enabled: !accountInfo.showing,
@@ -67,7 +69,7 @@ export function OverviewPage() {
   );
   const peerQuery = useQuery<API.PeerInfo, Error>(
     ["PeerInfo"],
-    API.fetchPeerInfo,
+    client.fetchPeerInfo,
     {
       refetchInterval: 10000,
       enabled: !accountInfo.showing,
@@ -75,7 +77,7 @@ export function OverviewPage() {
   );
   const peersQuery = useQuery<API.PeersInfo, Error>(
     ["PeersInfo"],
-    API.fetchPeersInfo,
+    client.fetchPeersInfo,
     {
       refetchInterval: 10000,
       enabled: !accountInfo.showing,
@@ -93,7 +95,7 @@ export function OverviewPage() {
     ["BirkInfo", epochIndex],
     () =>
       whenDefined(
-        (block) => API.fetchBirkParameters(block),
+        (block) => client.fetchBirkParameters(block),
         consensusQuery.data?.bestBlock
       ),
     {
@@ -116,7 +118,7 @@ export function OverviewPage() {
     ],
     () =>
       whenDefined(
-        (blockHash, address) => API.fetchAccountInfo(blockHash, address),
+        (blockHash, address) => client.fetchAccountInfo(blockHash, address),
         consensusQuery.data?.bestBlock,
         nodeBirkBaker?.bakerAccount
       ),
@@ -488,7 +490,7 @@ export function OverviewPage() {
                   icon="handshake outline"
                   basic
                   onClick={() =>
-                    whenDefined((id) => API.unbanNode(id), peer.id)
+                    whenDefined((id) => client.unbanNode(id), peer.id)
                   }
                 />
               }

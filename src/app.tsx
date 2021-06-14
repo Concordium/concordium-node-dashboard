@@ -10,13 +10,16 @@ import logoWithText from "./assets/concordium-text.svg";
 import { useDeviceScreen } from "./utils";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { AccountInfoModal } from "./pages/account-info-modal";
+import { ProvideApi } from "./provide-api";
 
 const queryClient = new QueryClient();
 
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Navigation />
+      <ProvideApi>
+        <Navigation />
+      </ProvideApi>
     </QueryClientProvider>
   );
 }
