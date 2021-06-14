@@ -1,4 +1,4 @@
-# This file only contains services ment for developing and testing the node-dashboard.
+# This file only contains services meant for developing and testing the node-dashboard.
 version: '3'
 services:
 
@@ -22,7 +22,7 @@ services:
       - ./grpc-api-client:/grpc-api-client
     command: bash /build_grpc-web-client.sh
 
-  # A service to quickly spin up an nginx service with the nginx config, ment for testing changes.
+  # A service to quickly spin up an nginx service with the nginx config, meant for testing changes.
   # Serves files from the dist directory created when building the node-dashboard.
   # IMPORTANT: Attaches directly to host network and ports.
   nginx-test:
