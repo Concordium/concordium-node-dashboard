@@ -5,10 +5,6 @@ import { Metadata } from "grpc-web";
 export { Error as ConnectionError, StatusCode as ErrorCode } from "grpc-web";
 
 // Constants
-
-// If GRPC_WEB_HOST is not set at build time, assume that we can access GRPC on the same host.
-// This requires the server to be configured correctly for proxying.
-
 const empty = new T.Empty();
 
 // Types

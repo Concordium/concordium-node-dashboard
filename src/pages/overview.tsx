@@ -501,7 +501,7 @@ export function OverviewPage() {
         },
       },
     ],
-    []
+    [client]
   );
 
   const errors = useMemo(
