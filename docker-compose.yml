@@ -6,7 +6,7 @@ services:
   # IMPORTANT: Attaches directly to host network and ports, this is nescessary for the
   # container to reach a node running on the host.
   grpc-proxy:
-    image: envoyproxy/envoy:v1.17.0
+    image: envoyproxy/envoy:v1.18.3
     network_mode: "host"
     volumes:
       - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
@@ -26,7 +26,7 @@ services:
   # Serves files from the dist directory created when building the node-dashboard.
   # IMPORTANT: Attaches directly to host network and ports.
   nginx-test:
-    image: nginx
+    image: nginx:1.18.0
     network_mode: "host"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/node-dashboard.conf
