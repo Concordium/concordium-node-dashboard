@@ -99,7 +99,6 @@ npm run build
 
 ## Releasing
 
-
 As this is shipped as part of the concordium-node container, the image for the concordium-node contains the runtime dependencies (nginx and envoy),
 but uses the image `192549843005.dkr.ecr.eu-west-1.amazonaws.com/concordium/node-dashboard`
 for the configuration and static files for the node dashboard.
@@ -119,3 +118,5 @@ docker push 192549843005.dkr.ecr.eu-west-1.amazonaws.com/concordium/node-dashboa
 
 To use in staging and/or testnet, update the version found in the dockerfiles
 found in concordium node repository.
+
+*Note:* The NGINX only exposes the needed calls for the GRPC-web proxy and puts a rate-limit on the requests to support up to two views of the node dashboard per IP.
