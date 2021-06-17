@@ -11,7 +11,14 @@ import { useDeviceScreen } from "./utils";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { AccountInfoModal } from "./pages/account-info-modal";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: false,
+    },
+  },
+});
 
 export function App() {
   return (
