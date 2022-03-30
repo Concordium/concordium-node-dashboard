@@ -1,19 +1,10 @@
 import { UnwrapPromiseRec, whenDefined } from "./utils";
 import { P2PPromiseClient } from "../grpc-api-client/concordium_p2p_rpc_grpc_web_pb";
 import * as T from "../grpc-api-client/concordium_p2p_rpc_pb";
+import { Metadata } from "grpc-web";
+export { Error as ConnectionError, StatusCode as ErrorCode } from "grpc-web";
 
 // Constants
-
-// If GRPC_WEB_HOST is not set at build time, assume that we can access GRPC on the same host.
-// This requires the server to be configured correctly for proxying.
-const grpcWebHost =
-  process.env.GRPC_WEB_HOST ??
-  window.location.protocol + "//" + window.location.host;
-
-console.info("Connecting to node GRPC at ", grpcWebHost);
-
-const client = new P2PPromiseClient(grpcWebHost);
-const meta = { authentication: "rpcadmin" };
 const empty = new T.Empty();
 
 // Types
@@ -183,10 +174,11 @@ type AnonymityRevoker = {
   arDescription: IpOrArDescription;
 };
 
-export type PeersInfo = UnwrapPromiseRec<ReturnType<typeof fetchPeersInfo>>;
-export type PeerInfo = UnwrapPromiseRec<ReturnType<typeof fetchPeerInfo>>;
+export type Client = UnwrapPromiseRec<ReturnType<typeof connect>>;
 
-export type NodeInfo = UnwrapPromiseRec<ReturnType<typeof fetchNodeInfo>>;
+export type PeersInfo = UnwrapPromiseRec<ReturnType<Client["fetchPeersInfo"]>>;
+export type PeerInfo = UnwrapPromiseRec<ReturnType<Client["fetchPeerInfo"]>>;
+export type NodeInfo = UnwrapPromiseRec<ReturnType<Client["fetchNodeInfo"]>>;
 
 // Helper functions
 
@@ -246,197 +238,205 @@ function isInBakingCommitteeToString(
   }
 }
 
-// API functions
-
-export async function fetchNodeInfo() {
-  const res = await client.nodeInfo(empty, meta);
-
-  return {
-    id: getGoogleStringValue(res.getNodeId()),
-    localTime: new Date(res.getCurrentLocaltime() * 1000),
-    inBakingCommittee: isInBakingCommitteeToString(
-      res.getConsensusBakerCommittee()
-    ),
-    bakerId: getGoogleIntValue(res.getConsensusBakerId()),
-    bakerRunning: res.getConsensusBakerRunning(),
-    inFinalizationCommittee: res.getConsensusFinalizerCommittee(),
-  } as const;
-}
-
-export async function fetchPeersInfo() {
-  const peersRequest = new T.PeersRequest();
-  peersRequest.setIncludeBootstrappers(false);
-
-  const [listRes, statsRes, bannedRes] = await Promise.all([
-    client.peerList(peersRequest, meta),
-    client.peerStats(peersRequest, meta),
-    client.getBannedPeers(empty, meta),
-  ]);
-
-  const peerStatsMap = new Map(
-    statsRes.getPeerstatsList().map((s) => [
-      s.getNodeId(),
-      {
-        packetsSent: s.getPacketsSent(),
-        packetsReceived: s.getPacketsReceived(),
-        latency: s.getLatency(),
-      },
-    ])
-  );
-
-  const peers = listRes.getPeersList().map((peer) => {
-    const id = getGoogleStringValue(peer.getNodeId());
-    const stats = id !== undefined ? peerStatsMap.get(id) : undefined;
-    const ip = getGoogleStringValue(peer.getIp());
-    const port = getGoogleIntValue(peer.getPort());
-    return {
-      id,
-      ip,
-      port,
-      status: catchupStatusToString(peer.getCatchupStatus()),
-      stats,
-    } as const;
-  });
-
-  const banned = bannedRes.getPeersList().map((peer) => {
-    const id = getGoogleStringValue(peer.getNodeId());
-    const ip = getGoogleStringValue(peer.getIp());
-    const port = getGoogleIntValue(peer.getPort());
-    return {
-      id,
-      ip,
-      port,
-    };
-  });
+/** Create a client for a given grpc-web host and with a given metadata */
+export function connect(grpcWebHost: string, meta?: Metadata) {
+  const client = new P2PPromiseClient(grpcWebHost);
 
   return {
-    avgBpsIn: statsRes.getAvgBpsIn(),
-    avgBpsOut: statsRes.getAvgBpsOut(),
-    peers,
-    banned,
+    async nodeVersion() {
+      const res = await client.peerVersion(empty, meta);
+      return res.getValue();
+    },
+
+    async fetchNodeInfo() {
+      const res = await client.nodeInfo(empty, meta);
+
+      return {
+        id: getGoogleStringValue(res.getNodeId()),
+        localTime: new Date(res.getCurrentLocaltime() * 1000),
+        inBakingCommittee: isInBakingCommitteeToString(
+          res.getConsensusBakerCommittee()
+        ),
+        bakerId: getGoogleIntValue(res.getConsensusBakerId()),
+        bakerRunning: res.getConsensusBakerRunning(),
+        inFinalizationCommittee: res.getConsensusFinalizerCommittee(),
+      } as const;
+    },
+
+    async fetchPeersInfo() {
+      const peersRequest = new T.PeersRequest();
+      peersRequest.setIncludeBootstrappers(false);
+
+      const [listRes, statsRes, bannedRes] = await Promise.all([
+        client.peerList(peersRequest, meta),
+        client.peerStats(peersRequest, meta),
+        client.getBannedPeers(empty, meta),
+      ]);
+
+      const peerStatsMap = new Map(
+        statsRes.getPeerstatsList().map((s) => [
+          s.getNodeId(),
+          {
+            packetsSent: s.getPacketsSent(),
+            packetsReceived: s.getPacketsReceived(),
+            latency: s.getLatency(),
+          },
+        ])
+      );
+
+      const peers = listRes.getPeersList().map((peer) => {
+        const id = getGoogleStringValue(peer.getNodeId());
+        const stats = id !== undefined ? peerStatsMap.get(id) : undefined;
+        const ip = getGoogleStringValue(peer.getIp());
+        const port = getGoogleIntValue(peer.getPort());
+        return {
+          id,
+          ip,
+          port,
+          status: catchupStatusToString(peer.getCatchupStatus()),
+          stats,
+        } as const;
+      });
+
+      const banned = bannedRes.getPeersList().map((peer) => {
+        const id = getGoogleStringValue(peer.getNodeId());
+        const ip = getGoogleStringValue(peer.getIp());
+        const port = getGoogleIntValue(peer.getPort());
+        return {
+          id,
+          ip,
+          port,
+        };
+      });
+
+      return {
+        avgBpsIn: statsRes.getAvgBpsIn(),
+        avgBpsOut: statsRes.getAvgBpsOut(),
+        peers,
+        banned,
+      };
+    },
+
+    async fetchPeerInfo() {
+      const [
+        resVersion,
+        resPeerUpTime,
+        packetsSent,
+        packetsReceived,
+      ] = await Promise.all([
+        client.peerVersion(empty, meta),
+        client.peerUptime(empty, meta),
+        client.peerTotalSent(empty, meta),
+        client.peerTotalReceived(empty, meta),
+      ]);
+      return {
+        version: resVersion.getValue(),
+        uptime: resPeerUpTime.getValue(),
+        packetsSent: packetsSent.getValue(),
+        packetsReceived: packetsReceived.getValue(),
+      };
+    },
+
+    async fetchConsensusInfo(): Promise<ConsensusInfo> {
+      const res = await client.getConsensusStatus(empty, meta);
+
+      const json = JSON.parse(res.getValue());
+
+      // Parsing date fields into Date objects
+      const dateFields = [
+        "blockLastArrivedTime",
+        "blockLastReceivedTime",
+        "genesisTime",
+        "lastFinalizedTime",
+      ];
+      for (const field of dateFields) {
+        const dateString = json[field];
+        if (dateString !== null) {
+          json[field] = new Date(Date.parse(dateString));
+        }
+      }
+      return json;
+    },
+
+    async fetchBirkParameters(blockHash: string): Promise<BirkParametersInfo> {
+      const request = new T.BlockHash();
+      request.setBlockHash(blockHash);
+      const res = await client.getBirkParameters(request, meta);
+      return JSON.parse(res.getValue());
+    },
+
+    async fetchAccountInfo(
+      blockHash: string,
+      accountAddress: string
+    ): Promise<AccountInfo> {
+      const request = new T.GetAddressInfoRequest();
+      request.setBlockHash(blockHash);
+      request.setAddress(accountAddress);
+
+      const res = await client.getAccountInfo(request, meta);
+      const json = JSON.parse(res.getValue());
+
+      // Parse amount strings
+      json.accountAmount = parseAmountString(json.accountAmount);
+      whenDefined(
+        (a) => (json.accountBaker.stakedAmount = parseAmountString(a)),
+        json.accountBaker?.stakedAmount
+      );
+
+      // Parse credential dates
+      json.accountCredentials = Object.values(json.accountCredentials);
+      for (const cred of json.accountCredentials) {
+        const { policy } = cred.value.contents;
+        policy.createdAt = parsePolicyDate(policy.createdAt);
+        policy.validTo = parsePolicyDate(policy.validTo);
+      }
+
+      // Parse release schedule
+      json.accountReleaseSchedule.total = parseAmountString(
+        json.accountReleaseSchedule.total
+      );
+      for (const schedule of json.accountReleaseSchedule.schedule) {
+        schedule.amount = parseAmountString(schedule.amount);
+        schedule.timestamp = new Date(schedule.timestamp);
+      }
+
+      return json;
+    },
+
+    async fetchIdentityProviders(
+      blockHash: string
+    ): Promise<Map<number, IdentityProvider>> {
+      const request = new T.BlockHash();
+      request.setBlockHash(blockHash);
+
+      const res = await client.getIdentityProviders(request, meta);
+      const json: IdentityProvider[] = JSON.parse(res.getValue());
+      const map = new Map(json.map((ip) => [ip.ipIdentity, ip]));
+      return map;
+    },
+
+    async fetchAnonymityRevokers(blockHash: string) {
+      const request = new T.BlockHash();
+      request.setBlockHash(blockHash);
+
+      const res = await client.getAnonymityRevokers(request, meta);
+      const json: AnonymityRevoker[] = JSON.parse(res.getValue());
+      const map = new Map(json.map((ar) => [ar.arIdentity, ar]));
+      return map;
+    },
+
+    async banNode(nodeId: string) {
+      const node = new T.PeerElement();
+      node.setNodeId(createGoogleValue(nodeId));
+      const res = await client.banNode(node, meta);
+      return res.getValue();
+    },
+
+    async unbanNode(nodeId: string) {
+      const node = new T.PeerElement();
+      node.setNodeId(createGoogleValue(nodeId));
+      const res = await client.unbanNode(node, meta);
+      return res.getValue();
+    },
   };
-}
-
-export async function fetchPeerInfo() {
-  const [
-    resVersion,
-    resPeerUpTime,
-    packetsSent,
-    packetsReceived,
-  ] = await Promise.all([
-    client.peerVersion(empty, meta),
-    client.peerUptime(empty, meta),
-    client.peerTotalSent(empty, meta),
-    client.peerTotalReceived(empty, meta),
-  ]);
-  return {
-    version: resVersion.getValue(),
-    uptime: resPeerUpTime.getValue(),
-    packetsSent: packetsSent.getValue(),
-    packetsReceived: packetsReceived.getValue(),
-  };
-}
-
-export async function fetchConsensusInfo(): Promise<ConsensusInfo> {
-  const res = await client.getConsensusStatus(empty, meta);
-
-  const json = JSON.parse(res.getValue());
-
-  // Parsing date fields into Date objects
-  const dateFields = [
-    "blockLastArrivedTime",
-    "blockLastReceivedTime",
-    "genesisTime",
-    "lastFinalizedTime",
-  ];
-  for (const field of dateFields) {
-    const dateString = json[field];
-    if (dateString !== null) {
-      json[field] = new Date(Date.parse(dateString));
-    }
-  }
-  return json;
-}
-
-export async function fetchBirkParameters(
-  blockHash: string
-): Promise<BirkParametersInfo> {
-  const request = new T.BlockHash();
-  request.setBlockHash(blockHash);
-  const res = await client.getBirkParameters(request, meta);
-  return JSON.parse(res.getValue());
-}
-
-export async function fetchAccountInfo(
-  blockHash: string,
-  accountAddress: string
-): Promise<AccountInfo> {
-  const request = new T.GetAddressInfoRequest();
-  request.setBlockHash(blockHash);
-  request.setAddress(accountAddress);
-
-  const res = await client.getAccountInfo(request, meta);
-  const json = JSON.parse(res.getValue());
-
-  // Parse amount strings
-  json.accountAmount = parseAmountString(json.accountAmount);
-  whenDefined(
-    (a) => (json.accountBaker.stakedAmount = parseAmountString(a)),
-    json.accountBaker?.stakedAmount
-  );
-
-  // Parse credential dates
-  json.accountCredentials = Object.values(json.accountCredentials);
-  for (const cred of json.accountCredentials) {
-    const { policy } = cred.value.contents;
-    policy.createdAt = parsePolicyDate(policy.createdAt);
-    policy.validTo = parsePolicyDate(policy.validTo);
-  }
-
-  // Parse release schedule
-  json.accountReleaseSchedule.total = parseAmountString(
-    json.accountReleaseSchedule.total
-  );
-  for (const schedule of json.accountReleaseSchedule.schedule) {
-    schedule.amount = parseAmountString(schedule.amount);
-    schedule.timestamp = new Date(schedule.timestamp);
-  }
-
-  return json;
-}
-
-export async function fetchIdentityProviders(
-  blockHash: string
-): Promise<Map<number, IdentityProvider>> {
-  const request = new T.BlockHash();
-  request.setBlockHash(blockHash);
-
-  const res = await client.getIdentityProviders(request, meta);
-  const json: IdentityProvider[] = JSON.parse(res.getValue());
-  const map = new Map(json.map((ip) => [ip.ipIdentity, ip]));
-  return map;
-}
-
-export async function fetchAnonymityRevokers(blockHash: string) {
-  const request = new T.BlockHash();
-  request.setBlockHash(blockHash);
-
-  const res = await client.getAnonymityRevokers(request, meta);
-  const json: AnonymityRevoker[] = JSON.parse(res.getValue());
-  const map = new Map(json.map((ar) => [ar.arIdentity, ar]));
-  return map;
-}
-
-export async function banNode(nodeId: string) {
-  const node = new T.PeerElement();
-  node.setNodeId(createGoogleValue(nodeId));
-  const res = await client.banNode(node, meta);
-  return res.getValue();
-}
-
-export async function unbanNode(nodeId: string) {
-  const node = new T.PeerElement();
-  node.setNodeId(createGoogleValue(nodeId));
-  const res = await client.unbanNode(node, meta);
-  return res.getValue();
 }

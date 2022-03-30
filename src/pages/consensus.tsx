@@ -26,6 +26,7 @@ import {
 import * as API from "../api";
 import { useAccountInfoSearchQuery } from "./account-info-modal";
 import { useQuery } from "react-query";
+import { useApiClient } from "../provide-api";
 
 const msInADay = 1000 * 60 * 60 * 24;
 const msInAWeek = msInADay * 7;
@@ -34,10 +35,11 @@ const msInAYear = msInAMonth * 12;
 
 export function ConsensusPage() {
   const accountInfo = useAccountInfoSearchQuery();
+  const client = useApiClient();
 
   const consensusQuery = useQuery<API.ConsensusInfo, Error>(
     ["ConsensusInfo"],
-    API.fetchConsensusInfo,
+    client.fetchConsensusInfo,
     {
       refetchInterval: 4000,
       keepPreviousData: true,
@@ -46,7 +48,7 @@ export function ConsensusPage() {
   );
   const nodeQuery = useQuery<API.NodeInfo, Error>(
     ["NodeInfo"],
-    API.fetchNodeInfo,
+    client.fetchNodeInfo,
     {
       refetchInterval: 4000,
       keepPreviousData: true,
@@ -64,7 +66,7 @@ export function ConsensusPage() {
     ["BirkInfo", epochIndex],
     () =>
       whenDefined(
-        (block) => API.fetchBirkParameters(block),
+        (block) => client.fetchBirkParameters(block),
         consensusQuery.data?.bestBlock
       ),
     { enabled: consensusQuery.data?.bestBlock !== undefined }
